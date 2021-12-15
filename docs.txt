@@ -1,0 +1,27 @@
+HACKATHON
+MAFIA GAME:
+    APP OPENED:
+        Display jumbotron title, and two fields at the bottom: Create game and join game
+
+    CREATE GAME:
+        send to LOBBY:
+            User will see the list of joined players as they join
+
+    JOIN GAME:
+        User will be allowed to input a lobby code
+        If lobby code is valid, user will be pushed to LOBBY
+
+    LOBBY:
+        Users will see table of current joined users
+        After the room is full, a counter will begin that will start the game
+        
+
+Player can create a room, other players can join it
+Max of 6 players ?
+Two teams: villagers and mafia
+villagers have 2 unique roles: investigator and doctor
+Day and night phase
+Day is 1 minute long for discussions, 15 seconds long for voting
+Night is 10 seconds long
+Roles will be handed out randomly
+Results will be announced at the end of the game, with the players and their roles
