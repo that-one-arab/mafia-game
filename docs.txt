@@ -2,11 +2,12 @@ MAFIA GAME
 --------------------------------------------- *** VIEWS *** ------------------------------------------------
 CREATE GAME:
     Player will be asked to input their name
-    On name input submit, player will be pushed to the :LOBBY
+    Player will be asked to choose amount of players (EG: 6)
+    On submit, player will be pushed to the :LOBBY
 
 JOIN GAME:
     Player will be asked to input their name
-    On name input submit, player will be pushed to the :JOIN GAME(ENTER CODE)
+    On submit, player will be pushed to the :JOIN GAME(ENTER CODE)
 
 JOIN GAME(ENTER CODE):
     Player will be asked to input a game code, on successfull input, played will be pushed to :LOBBY
@@ -39,6 +40,7 @@ GAME:
             If player dies: player's screen will flash red
             If player used their special ability:
                 If player is mafia:
+                    Player will see a if other Mafia members chose a player for killing
                     If player successfully killed another player, nothing will be shown (since the player will be announced dead next day)
                     If player failed at killing another player, a message will display notifiying the player was blocked from killing
                 If player is villager:
@@ -47,13 +49,39 @@ GAME:
         Player will see which team won
         Player will see list of all players and their roles
         Game will be terminated
-
-Player can create a room, other players can join it
+--------------------------------------------- *** TEAMS AND ROLES *** ------------------------------------------------
+TEAMS:
+    Mafia
+    Village
+Goon:
+    TEAM: Mafia
+    DESCRIP:
+        A goon can choose a character to kill
+        If Godfather is present, The kill decision will go to the Godfather
+        If Godfather is dead, one of the goons will be randomly selected and promoted to Godfather
+Godfather:
+    TEAM: Mafia
+    DESCRIP:
+        A Godfather can choose a character to kill
+        The kill decision will always go to Godfather
+investigator:
+    TEAM: Village
+    DESCRIP:
+        An investigator can choose a character to investigate
+        Results of investigation will be displayed between night-day transition
+Doctor:
+    TEAM: Village
+    DESCRIP:
+        A doctor can choose a character to protect
+        Results of protection will be displayed between night-day transition
+            If protection target was not chosen for assasination: no message will be displayed
+            If protection target was chosen for assasination: the doctor will see a message displaying the result
+Villager:
+    TEAM: Village
+    DESCRIP:
+        Villagers do not have a night ability, they can only vote during the day
+    
+--------------------------------------------- *** NOTES *** ------------------------------------------------
 Max of 6 players ?
-Two teams: villagers and mafia
-villagers have 2 unique roles: investigator and doctor
-Day and night phase
 Day is 1 minute long for discussions, 15 seconds long for voting
 Night is 10 seconds long
-Roles will be handed out randomly
-Results will be announced at the end of the game, with the players and their roles
