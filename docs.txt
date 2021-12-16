@@ -1,20 +1,52 @@
-HACKATHON
-MAFIA GAME:
-    APP OPENED:
-        Display jumbotron title, and two fields at the bottom: Create game and join game
+MAFIA GAME
+--------------------------------------------- *** VIEWS *** ------------------------------------------------
+CREATE GAME:
+    Player will be asked to input their name
+    On name input submit, player will be pushed to the :LOBBY
 
-    CREATE GAME:
-        send to LOBBY:
-            User will see the list of joined players as they join
+JOIN GAME:
+    Player will be asked to input their name
+    On name input submit, player will be pushed to the :JOIN GAME(ENTER CODE)
 
-    JOIN GAME:
-        User will be allowed to input a lobby code
-        If lobby code is valid, user will be pushed to LOBBY
+JOIN GAME(ENTER CODE):
+    Player will be asked to input a game code, on successfull input, played will be pushed to :LOBBY
 
-    LOBBY:
-        Users will see table of current joined users
-        After the room is full, a counter will begin that will start the game
-        
+LOBBY:
+    player will be shown the game code and below, a table (lobby) of the joined players
+    Once all players joined, a countdown will start (shown bottom of screen) and the game will start automatically after the countdown finishes, all players will be pushed to :GAME
+
+GAME:
+    ROLE ASSIGNMENT:
+        Player will be handed a random role. Then after a specific timeout, will be pushed to DAY
+    DAY:
+        Player will be shown a list of all players as a table in bottom of screen
+        Player will be shown a counter of the days that passed at the top of the screen
+        Player will be given a time period before heading into lynching
+            IF ITS DAY 1, LYNCHING CANNOT OCCUR
+            If player is dead, player cannot do anything
+            Once in lynching, player will be asked to vote a player out. Player will be shown all votes occurring
+            If player X got most votes, player X get's lynched and will be shown as deceased
+            After player X get's lynched, player X will have their role shown
+        Player will see the deceased player if they exist, else they will see a message saying nobody died yesterday
+    NIGHT:
+        Player will be shown a list of all players as a table in bottom of screen
+        If player does not have a special role, player cannot do anything and will wait until night phase is over
+        If player has a special role:
+            if the player is mafia, they can see their mafia friends highlighted in red color in bottom players list
+            the player can choose another player to use their ability on
+            Once player chooses, their choice is locked and they cannot modify their choice
+        After night time counter finishes, a window of 3 seconds will occur before transitioning to DAY, in this window the following can occur:
+            If player dies: player's screen will flash red
+            If player used their special ability:
+                If player is mafia:
+                    If player successfully killed another player, nothing will be shown (since the player will be announced dead next day)
+                    If player failed at killing another player, a message will display notifiying the player was blocked from killing
+                If player is villager:
+                    a message will be displayed notifiying them the results of their action
+    RESULTS:
+        Player will see which team won
+        Player will see list of all players and their roles
+        Game will be terminated
 
 Player can create a room, other players can join it
 Max of 6 players ?
