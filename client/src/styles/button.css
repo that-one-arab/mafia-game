@@ -1,6 +1,6 @@
 .button{
     position: relative;
-    background-color: black;
+    background-color: rgb(52, 20, 197);
     border-radius: 4em;
     font-size: 16px;
     color: white;
@@ -16,7 +16,7 @@
   
   .button:hover {
     transition-duration: 0.1s;
-    background-color: #3A3A3A;
+    background-color: #190452;
   }
   
   .button:after {
