@@ -9,7 +9,7 @@ export default function Main() {
         <div id='main'>
             <div>
                 <h1 className='display-1 mt-3'>Mafia</h1>
-                <p class='lead'>
+                <p className='lead'>
                     A way to play the popular social game without a game master!
                 </p>
             </div>

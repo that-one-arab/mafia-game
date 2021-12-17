@@ -4,6 +4,9 @@ const initialState = {
     player: {
         name: '',
     },
+    gameOptions: {
+        playersAmount: 0,
+    },
     joinedPlayers: [],
 };
 
@@ -19,8 +22,18 @@ const reducer = (state = initialState, action) => {
                 },
             };
 
+        case 'SET_PLAYERS_AMOUNT':
+            const playersAmountInput = action.payload;
+            return {
+                ...state,
+                gameOptions: {
+                    ...state.gameOptions,
+                    playersAmount: playersAmountInput,
+                },
+            };
+
         default:
-            break;
+            return state;
     }
 };
 
