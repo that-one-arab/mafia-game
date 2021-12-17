@@ -3,6 +3,7 @@ import JoinGame from '../views/main/join_game/JoinGame';
 import JoinGameEnterCode from '../views/main/join_game_enter_code/JoinGameEnterCode';
 import CreateGame from '../views/main/create_game/CreateGame';
 import Lobby from '../views/main/lobby/Lobby';
+import Controller from '../views/game/Controller';
 
 export const routes = [
     {
@@ -36,5 +37,11 @@ export const routes = [
         exact: true,
         name: 'lobby',
         component: Lobby,
+    },
+    {
+        path: '/game',
+        exact: true,
+        name: 'game controller',
+        component: Controller,
     },
 ];
