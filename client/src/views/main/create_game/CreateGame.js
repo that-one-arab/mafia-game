@@ -1,68 +1,19 @@
 import { useHistory } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { useState, useRef, useEffect } from 'react';
-import { Toast } from 'bootstrap';
+import { useState } from 'react';
+import { Toaster } from '../../../components';
 
-function ToastDemo({ toast, setToast }) {
-    const toastRef = useRef();
-    console.log({ toast });
+const ERR_SELECT_PLAYERS_AMOUNT = {
+    show: 1,
+    header: 'No players amount selected',
+    body: 'Please select amount of players for the game',
+};
 
-    useEffect(() => {
-        var myToast = toastRef.current;
-        var bsToast = Toast.getInstance(myToast);
-
-        if (!bsToast) {
-            // initialize Toast
-            bsToast = new Toast(myToast, { autohide: true });
-            // hide after init
-            bsToast.hide();
-            // setToastHandler();
-        } else {
-            // toggle
-            toast.show ? bsToast.show() : bsToast.hide();
-        }
-    }, [toast]);
-
-    return (
-        <div className='py-2'>
-            <button
-                className='btn btn-success'
-                onClick={() =>
-                    setToast((prevVal) => ({
-                        show: prevVal + 1,
-                        body: prevVal.body,
-                        header: prevVal.header,
-                    }))
-                }
-            >
-                Toast handler
-            </button>
-            <div
-                className='toast position-absolute top-0 end-0 m-4'
-                role='alert'
-                ref={toastRef}
-            >
-                <div className='toast-header'>
-                    <strong className='me-auto'>{toast.header}</strong>
-                    {/* <small>4 mins ago</small> */}
-                    <button
-                        type='button'
-                        className='btn-close'
-                        onClick={() =>
-                            setToast((prevVal) => ({
-                                show: prevVal + 1,
-                                body: prevVal.body,
-                                header: prevVal.header,
-                            }))
-                        }
-                        aria-label='Close'
-                    ></button>
-                </div>
-                <div className='toast-body'>{toast.body}</div>
-            </div>
-        </div>
-    );
-}
+const ERR_INPUT_PLAYER_NAME = {
+    show: 1,
+    header: 'Your player name cannot be empty',
+    body: 'Your player name is used to identify you in the game, please input a name',
+};
 
 export default function CreateGame() {
     const history = useHistory();
@@ -70,12 +21,12 @@ export default function CreateGame() {
     const playersAmount = useSelector(
         (state) => state.gameOptions.playersAmount
     );
-    console.log({ playersAmount });
+    const playerName = useSelector((state) => state.player.name);
 
     const [toast, setToast] = useState({
         show: 0,
-        body: 'choose amount of players',
-        header: 'choose amount',
+        header: '',
+        body: '',
     });
 
     const dispatchPlayerAmountHandler = (e) =>
@@ -84,14 +35,28 @@ export default function CreateGame() {
             payload: Number(e.target.value),
         });
 
+    const dispatchPlayerNameHandler = (e) =>
+        dispatch({ type: 'SET_PLAYER_NAME', payload: e.target.value });
+
+    const createGameNextScreenHandler = () => {
+        if (playerName.trim() === '')
+            setToast({ ...ERR_INPUT_PLAYER_NAME, show: toast.show + 1 });
+        else if (playersAmount === 0)
+            setToast({ ...ERR_SELECT_PLAYERS_AMOUNT, show: toast.show + 1 });
+        else history.push('/lobby');
+    };
+
     return (
         <div>
+            <Toaster toast={toast} setToast={setToast} />
             <div>
                 <h3>Input your name</h3>
-                <input />
+                <input
+                    onChange={dispatchPlayerNameHandler}
+                    value={playerName}
+                />
             </div>
             <div>
-                <ToastDemo toast={toast} setToast={setToast} />
                 <h3>Choose amount of players</h3>
                 <div
                     className='btn-group'
@@ -121,7 +86,7 @@ export default function CreateGame() {
                 </div>
             </div>
             <div>
-                <button onClick={() => history.push('/lobby')}>Continue</button>
+                <button onClick={createGameNextScreenHandler}>Continue</button>
             </div>
         </div>
     );

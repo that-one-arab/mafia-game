@@ -28,7 +28,7 @@ GAME:
             Once in lynching, player will be asked to vote a player out. Player will be shown all votes occurring
             If player X got most votes, player X get's lynched and will be shown as deceased
             After player X get's lynched, player X will have their role shown
-        Player will see the deceased player if they exist, else they will see a message saying nobody died yesterday
+        Player will see the deceased player if they died, else they will see a message saying nobody died yesterday
     NIGHT:
         Player will be shown a list of all players as a table in bottom of screen
         If player does not have a special role, player cannot do anything and will wait until night phase is over
