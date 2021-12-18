@@ -85,4 +85,4 @@ Villager:
 Max of 6 players ?
 Day is 1 minute long for discussions, 15 seconds long for voting
 Night is 10 seconds long
-Might use Chakra UI?
+Might use Chakra UI? Or material ui?
