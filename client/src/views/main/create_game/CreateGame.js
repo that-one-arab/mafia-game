@@ -1,7 +1,7 @@
 import { useHistory } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useState } from 'react';
-import { Toaster } from '../../../components';
+import { Loading, Toaster } from '../../../components';
 
 const ERR_SELECT_PLAYERS_AMOUNT = {
     show: 1,
@@ -28,6 +28,7 @@ export default function CreateGame() {
         header: '',
         body: '',
     });
+    const [loading, setLoading] = useState(false);
 
     const dispatchPlayerAmountHandler = (e) =>
         dispatch({
@@ -38,56 +39,79 @@ export default function CreateGame() {
     const dispatchPlayerNameHandler = (e) =>
         dispatch({ type: 'SET_PLAYER_NAME', payload: e.target.value });
 
-    const createGameNextScreenHandler = () => {
+    const createRoomHandler = async () => {
+        const res = await fetch('/api/room', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                playerName,
+                playersAmount,
+            }),
+        });
+
+        if (res.status === 201) {
+            const data = await res.json();
+            console.log({ data });
+            history.push('/lobby');
+        }
+    };
+
+    const createGameNextScreenHandler = async () => {
         if (playerName.trim() === '')
             setToast({ ...ERR_INPUT_PLAYER_NAME, show: toast.show + 1 });
         else if (playersAmount === 0)
             setToast({ ...ERR_SELECT_PLAYERS_AMOUNT, show: toast.show + 1 });
-        else history.push('/lobby');
+        else await createRoomHandler();
     };
 
     return (
         <div>
-            <Toaster toast={toast} setToast={setToast} />
-            <div>
-                <h3>Input your name</h3>
-                <input
-                    onChange={dispatchPlayerNameHandler}
-                    value={playerName}
-                />
-            </div>
-            <div>
-                <h3>Choose amount of players</h3>
-                <div
-                    className='btn-group'
-                    role='group'
-                    aria-label='Basic outlined example'
-                >
-                    <button
-                        type='button'
-                        className={`btn btn-outline-primary ${
-                            playersAmount === 4 ? 'active' : ''
-                        }`}
-                        onClick={dispatchPlayerAmountHandler}
-                        value={4}
+            <Loading absolute loading={loading}>
+                <div>
+                    <h3>Input your name</h3>
+                    <input
+                        onChange={dispatchPlayerNameHandler}
+                        value={playerName}
+                    />
+                </div>
+                <div>
+                    <h3>Choose amount of players</h3>
+                    <div
+                        className='btn-group'
+                        role='group'
+                        aria-label='Basic outlined example'
                     >
-                        4 Players
-                    </button>
-                    <button
-                        type='button'
-                        className={`btn btn-outline-primary ${
-                            playersAmount === 6 ? 'active' : ''
-                        }`}
-                        onClick={dispatchPlayerAmountHandler}
-                        value={6}
-                    >
-                        6 Players
+                        <button
+                            type='button'
+                            className={`btn btn-outline-primary ${
+                                playersAmount === 4 ? 'active' : ''
+                            }`}
+                            onClick={dispatchPlayerAmountHandler}
+                            value={4}
+                        >
+                            4 Players
+                        </button>
+                        <button
+                            type='button'
+                            className={`btn btn-outline-primary ${
+                                playersAmount === 6 ? 'active' : ''
+                            }`}
+                            onClick={dispatchPlayerAmountHandler}
+                            value={6}
+                        >
+                            6 Players
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <button onClick={createGameNextScreenHandler}>
+                        Continue
                     </button>
                 </div>
-            </div>
-            <div>
-                <button onClick={createGameNextScreenHandler}>Continue</button>
-            </div>
+            </Loading>
+            <Toaster toast={toast} setToast={setToast} />
         </div>
     );
 }

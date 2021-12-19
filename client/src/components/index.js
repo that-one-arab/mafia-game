@@ -1,3 +1,5 @@
-import Toaster from "./toaster/Toaster";
+import Toaster from './toaster/Toaster';
 
-export {Toaster}
+import Loading from './loading_hoc/Loading';
+
+export { Toaster, Loading };

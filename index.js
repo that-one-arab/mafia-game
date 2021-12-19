@@ -4,10 +4,38 @@ const mongoose = require('mongoose');
 const express = require('express');
 const socket = require('socket.io');
 const cors = require('cors');
+const { uuid } = require('./src/helpers');
+const { Room, PlayerAmount } = require('./src/models');
 
 const app = express();
 
 app.use(cors());
+app.use(express.json());
+
+app.post('/api/room', async (req, res) => {
+    const { playersAmount, playerName } = req.body;
+    console.log({ playersAmount, playerName });
+
+    const roomID = uuid('ROM-');
+    const playerID = uuid('PLR-');
+    const roomCode = uuid('', '', { idFor: 'ROOM_CODE' });
+    console.log({ roomID, playerID, roomCode });
+
+    const room = new Room({
+        roomID,
+        playersAmount,
+        owner: {
+            playerID,
+            playerName,
+        },
+    });
+    console.log({ room });
+
+    await room.save();
+    console.log('saved the room');
+
+    return res.status(201).json(roomCode);
+});
 
 const connectToDB = async () => {
     const db = await new Promise((resolve, reject) => {
@@ -72,29 +100,29 @@ const initializeSocketConn = async (server) => {
         const server = await initializeServer(8080);
         const io = await initializeSocketConn(server);
 
-        const kittySchema = new mongoose.Schema({
-            name: String,
-        });
+        // const kittySchema = new mongoose.Schema({
+        //     name: String,
+        // });
 
-        kittySchema.methods.speak = function speak() {
-            const greeting = this.name
-                ? 'Meow name is ' + this.name
-                : "I don't have a name";
-            console.log(greeting);
-        };
+        // kittySchema.methods.speak = function speak() {
+        //     const greeting = this.name
+        //         ? 'Meow name is ' + this.name
+        //         : "I don't have a name";
+        //     console.log(greeting);
+        // };
 
-        const Kitten = mongoose.model('Kitten', kittySchema);
+        // const Kitten = mongoose.model('Kitten', kittySchema);
 
-        const silence = new Kitten({ name: 'Silence' });
+        // const silence = new Kitten({ name: 'Silence' });
 
-        const fluffy = new Kitten({ name: 'fluffy' });
-        fluffy.speak(); // "Meow name is fluffy"
-        // await fluffy.save();
+        // const fluffy = new Kitten({ name: 'fluffy' });
+        // fluffy.speak(); // "Meow name is fluffy"
+        // // await fluffy.save();
 
-        const kittens = await Kitten.find();
-        console.log(kittens);
+        // const kittens = await Kitten.find();
+        // console.log(kittens);
 
-        console.log(silence.name); // 'Silence'
+        // console.log(silence.name); // 'Silence'
     } catch (error) {
         console.error(error);
     }
