@@ -28,6 +28,7 @@ app.get('/api/room', async (req, res) => {
         const { roomCode } = req.query;
         const room = await Room.findOne({ roomCode });
         console.log({ room });
+        if (!room) return res.status(400).json('Room was not found');
         return res.json(room);
     } catch (error) {
         console.error(error);
@@ -51,6 +52,7 @@ app.post('/api/room', async (req, res) => {
             playerID,
             playerName,
         },
+        creationDate: new Date(),
     });
     console.log({ room });
 

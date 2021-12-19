@@ -59,6 +59,10 @@ export default function CreateGame() {
             console.log({ data });
             dispatch({ type: 'SET_ROOM_CODE', payload: data.roomCode });
             dispatch({ type: 'SET_PLAYER_ID', payload: data.playerID });
+            dispatch({
+                type: 'SET_ROOM_OWNER',
+                payload: { playerID: data.playerID, playerName },
+            });
             history.push('/lobby');
         }
     };

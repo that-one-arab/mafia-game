@@ -11,6 +11,7 @@ const initialState = {
     game: {
         roomCode: '',
         joinedPlayers: [],
+        roomOwner: {},
     },
 };
 
@@ -43,6 +44,15 @@ const reducer = (state = initialState, action) => {
                 game: {
                     ...state.game,
                     roomCode: roomCodePayload,
+                },
+            };
+
+        case 'SET_ROOM_OWNER':
+            return {
+                ...state,
+                game: {
+                    ...state.game,
+                    roomOwner: action.payload,
                 },
             };
 

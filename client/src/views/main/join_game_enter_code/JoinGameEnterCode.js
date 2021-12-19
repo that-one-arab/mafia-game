@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Toaster } from '../../../components';
+import { Toaster, Loading } from '../../../components';
 
 const ERR_ENTER_GAME_CODE = {
     show: 1,
@@ -16,35 +16,64 @@ const ERR_GAME_CODE_TOO_LONG = {
 };
 
 const ERR_NO_PLAYER_NAME = {
-    show: true,
+    show: 1,
     header: 'Your player name cannot be empty',
     body: 'Your player name is used to identify you in the game, please go back to the first screen and input a name',
 };
 
+const ERR_GAME_CODE_INVALID = {
+    show: 1,
+    header: 'Invalid game code',
+    body: 'Your game code is invalid. Please double check your game code and try again',
+};
+
 export default function JoinGameEnterCode() {
     const history = useHistory();
+
     const [gameCode, setGameCode] = useState('');
     const [toast, setToast] = useState({ show: 0, header: '', body: '' });
+    const [loading, setLoading] = useState(false);
+
     const playerName = useSelector((state) => state.player.name);
 
     const setGameCodeHandler = (e) => setGameCode(e.target.value);
 
-    const joinGameEnterCodeContinueHandler = () => {
+    const getGameWithCodeHandler = async () => {
+        console.log({ gameCode });
+        setLoading(true);
+
+        const res = await fetch(`/api/room?roomCode=${gameCode}`);
+        setLoading(false);
+        if (res.status === 200) {
+            const data = await res.json();
+            console.log({ data });
+
+            history.push('/lobby');
+        } else {
+            setToast({ ...ERR_GAME_CODE_INVALID, show: toast.show + 1 });
+        }
+    };
+
+    const joinGameEnterCodeContinueHandler = async () => {
         if (gameCode.trim() === '')
             setToast({ ...ERR_ENTER_GAME_CODE, show: toast.show + 1 });
         else if (gameCode.trim().length > 6)
             setToast({ ...ERR_GAME_CODE_TOO_LONG, show: toast.show + 1 });
         else if (playerName.trim() === '')
             setToast({ ...ERR_NO_PLAYER_NAME, show: toast.show + 1 });
-        else history.push('/lobby');
+        else await getGameWithCodeHandler();
     };
 
     return (
         <div>
-            <Toaster toast={toast} setToast={setToast} />
-            <h3>Enter code</h3>
-            <input onChange={setGameCodeHandler} value={gameCode} />
-            <button onClick={joinGameEnterCodeContinueHandler}>continue</button>
+            <Loading absolute loading={loading}>
+                <Toaster toast={toast} setToast={setToast} />
+                <h3>Enter code</h3>
+                <input onChange={setGameCodeHandler} value={gameCode} />
+                <button onClick={joinGameEnterCodeContinueHandler}>
+                    continue
+                </button>
+            </Loading>
         </div>
     );
 }
