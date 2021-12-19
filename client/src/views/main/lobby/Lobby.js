@@ -1,14 +1,19 @@
 import { useSelector } from 'react-redux';
 
 export default function Lobby() {
-    const playerName = useSelector((state) => state.player.name);
-    if (playerName.trim() === '') console.log('No player name in this screen');
+    const player = useSelector((state) => state.player);
+    const roomCode = useSelector((state) => state.game.roomCode);
+    console.log({ player, roomCode });
+
+    const players = [player];
 
     return (
         <div>
             <div>
                 <h1>This is the lobby!</h1>
-                <p> Your code is INSERT CODE</p>
+                <p> Your code is </p>
+                <h2>{roomCode} </h2>
+                <p>Share this code with people who wanna join!</p>
             </div>
             <div>
                 <p>Joined players table</p>
@@ -21,17 +26,12 @@ export default function Lobby() {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <th scope='row'>1</th>
-                        <td>Mark</td>
-                    </tr>
-                    <tr>
-                        <th scope='row'>2</th>
-                        <td>Jacob</td>
-                    </tr>
-                    <tr>
-                        <th scope='row'>3</th>
-                    </tr>
+                    {players.map((p, i) => (
+                        <tr key={p.ID}>
+                            <th scope='col'>#{i + 1}</th>
+                            <th scope='col'>{p.name} </th>
+                        </tr>
+                    ))}
                 </tbody>
             </table>
         </div>

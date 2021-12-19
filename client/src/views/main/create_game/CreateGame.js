@@ -40,6 +40,7 @@ export default function CreateGame() {
         dispatch({ type: 'SET_PLAYER_NAME', payload: e.target.value });
 
     const createRoomHandler = async () => {
+        setLoading(true);
         const res = await fetch('/api/room', {
             method: 'POST',
             headers: {
@@ -51,9 +52,13 @@ export default function CreateGame() {
             }),
         });
 
+        setLoading(false);
+
         if (res.status === 201) {
             const data = await res.json();
             console.log({ data });
+            dispatch({ type: 'SET_ROOM_CODE', payload: data.roomCode });
+            dispatch({ type: 'SET_PLAYER_ID', payload: data.playerID });
             history.push('/lobby');
         }
     };

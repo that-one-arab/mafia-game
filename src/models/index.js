@@ -6,7 +6,7 @@ const playerSchema = new Schema({
 });
 
 const roomSchema = new Schema({
-    roomID: String,
+    roomCode: String,
     playersAmount: String,
     players: [playerSchema],
     owner: playerSchema,

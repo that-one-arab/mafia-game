@@ -12,17 +12,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const validatePlayersAmount = async (playersAmountInput) => {
+    try {
+        const playersAmount = await PlayerAmount.find();
+        const allowedPlayersAmount = playersAmount[0].amount;
+        if (!allowedPlayersAmount.includes(playersAmountInput))
+            throw 'NOT_ALLOWED_ERR Players amount not allowed';
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
+app.get('/api/room', async (req, res) => {
+    try {
+        const { roomCode } = req.query;
+        const room = await Room.findOne({ roomCode });
+        console.log({ room });
+        return res.json(room);
+    } catch (error) {
+        console.error(error);
+    }
+});
+
 app.post('/api/room', async (req, res) => {
     const { playersAmount, playerName } = req.body;
     console.log({ playersAmount, playerName });
 
-    const roomID = uuid('ROM-');
+    await validatePlayersAmount(playersAmount);
+
     const playerID = uuid('PLR-');
     const roomCode = uuid('', '', { idFor: 'ROOM_CODE' });
-    console.log({ roomID, playerID, roomCode });
+    console.log({ roomCode, playerID });
 
     const room = new Room({
-        roomID,
+        roomCode,
         playersAmount,
         owner: {
             playerID,
@@ -34,7 +57,7 @@ app.post('/api/room', async (req, res) => {
     await room.save();
     console.log('saved the room');
 
-    return res.status(201).json(roomCode);
+    return res.status(201).json({ roomCode, playerID });
 });
 
 const connectToDB = async () => {
