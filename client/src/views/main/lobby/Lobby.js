@@ -68,9 +68,7 @@ export default function Lobby() {
                         <tr
                             key={p.ID}
                             style={{
-                                backgroundColor: player.isOwner
-                                    ? 'grey'
-                                    : 'white',
+                                backgroundColor: p.isOwner ? 'grey' : 'white',
                             }}
                         >
                             <th scope='col'>#{i + 1}</th>

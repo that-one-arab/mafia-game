@@ -1,4 +1,5 @@
 const { v4: uuid } = require('uuid');
+const { PlayerAmount } = require('../models');
 
 module.exports = {
     /**
@@ -18,5 +19,16 @@ module.exports = {
             }
         }
         return `${beginingPad}${uuid()}${endPad}`;
+    },
+
+    validatePlayersAmount: async (playersAmountInput) => {
+        try {
+            const playersAmount = await PlayerAmount.find();
+            const allowedPlayersAmount = playersAmount[0].amount;
+            if (!allowedPlayersAmount.includes(playersAmountInput))
+                throw 'NOT_ALLOWED_ERR Players amount not allowed';
+        } catch (error) {
+            throw new Error(error);
+        }
     },
 };
