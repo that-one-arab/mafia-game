@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Svg } from '../../assets/svg';
+import { useInterval } from '../../hooks';
 import './style.css';
+
 function RoleAssignment() {
     return (
         <div>
@@ -33,65 +35,56 @@ function Results(params) {
     );
 }
 
+/**
+ * It needs to slide throw all images: (1, 2 , 3, 1, 2 ,3)
+ * Once role is resolved, it needs to stop at the appropriate image
+ */
 function AutoSlider() {
     const els = [
-        <Svg className={'svg slide-img'} svg='mafia' />,
-        <Svg className={'svg slide-img'} svg='doctor' />,
-        <Svg className={'svg slide-img'} svg='investigator' />,
+        {
+            label: 'Mafia',
+            name: 'mafia',
+            component: <Svg className={'svg slide-img'} svg='mafia' />,
+        },
+        {
+            label: 'Doctor',
+            name: 'doctor',
+            component: <Svg className={'svg slide-img'} svg='doctor' />,
+        },
+        {
+            label: 'Investigator',
+            name: 'investigator',
+            component: <Svg className={'svg slide-img'} svg='investigator' />,
+        },
+        {
+            label: 'Villager',
+            name: 'villager',
+            component: <Svg className={'svg slide-img'} svg='villager' />,
+        },
     ];
 
-    const [slideIndex, setSlideIndex] = useState(-1);
+    const [slideIndex, setSlideIndex] = useState(0);
 
-    useEffect(() => {
-        setInterval(() => {
-            // console.log({ slideIndex });
-            if (slideIndex + 1 === els.length) setSlideIndex(0);
-            else setSlideIndex(slideIndex + 1);
-        }, 1000);
-    }, [slideIndex, els.length]);
+    useInterval(() => {
+        if (slideIndex + 1 === els.length) setSlideIndex(0);
+        else setSlideIndex(slideIndex + 1);
+    }, 1000);
 
     return (
         <div>
-            {els.map((el, i) => (
-                <div
-                    key={i}
-                    className={`${
-                        slideIndex === i ? 'mySlides-on' : 'mySlides-off'
-                    } fade`}
-                >
-                    <div className='numbertext'> {i + 1} / 3</div>
-                    {el}
-                    <div className='text'>Caption Text</div>
-                </div>
-            ))}
-            {/* <div className='slideshow-container'>
-                <div className='mySlides fade'>
-                    <div className='numbertext'>1 / 3</div>
-                    <Svg className={'svg'} svg='mafia' />
-                    <div className='text'>Caption Text</div>
-                </div>
-                <div className='mySlides fade'>
-                    <div className='numbertext'>1 / 3</div>
-                    <Svg className={'svg'} svg='mafia' />
-                    <div className='text'>Caption Text</div>
-                </div>
-                <div className='mySlides fade'>
-                    <div className='numbertext'>1 / 3</div>
-                    <Svg className={'svg'} svg='mafia' />
-                    <div className='text'>Caption Text</div>
-                </div>
-            </div> */}
-            {/* 
-            <div style={{ textAlign: 'center' }}>
-                <span class='dot'></span>
-                <span class='dot'></span>
-                <span class='dot'></span>
-            </div> */}
-
-            {/* <Svg className={'svg'} svg='mafia' />
-            <Svg className={'svg'} svg='villager' />
-            <Svg className={'svg'} svg='doctor' />
-            <Svg className={'svg'} svg='investigator' /> */}
+            <div className='slideshow-container'>
+                {els.map((el, i) => (
+                    <div
+                        key={i}
+                        className={`${
+                            slideIndex === i ? 'mySlides-on' : 'mySlides-off'
+                        } fade`}
+                    >
+                        {el.component}
+                        <div className='text'>{el.label}</div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
