@@ -1,11 +1,49 @@
 import { useSelector } from 'react-redux';
+import io from 'socket.io-client';
+import { useEffect, useState } from 'react';
+
+const parseGamePlayers = (player, players, owner) => {
+    let res = [];
+
+    if (players && players.length) {
+        for (let i = 0; i < players.length; i++) {
+            const p = players[i];
+            if (p.ID !== owner.ID)
+                res.push({ ID: p.ID, name: p.name, isOwner: false });
+        }
+    }
+
+    if (owner && owner.ID)
+        res.push({ ID: owner.ID, name: owner.name, isOwner: true });
+
+    if (player && player.ID) {
+        if (owner && owner.ID && player.ID !== owner.ID)
+            res.push({ ID: player.ID, name: player.name, isOwner: false });
+    }
+
+    return res;
+};
 
 export default function Lobby() {
     const player = useSelector((state) => state.player);
-    const roomCode = useSelector((state) => state.game.roomCode);
-    console.log({ player, roomCode });
+    const { roomCode, roomOwner, joinedPlayers } = useSelector(
+        (state) => state.game
+    );
 
-    const players = [player];
+    console.log({ player, roomCode, roomOwner, joinedPlayers });
+
+    const players = parseGamePlayers(player, joinedPlayers, roomOwner);
+    console.log({ players });
+
+    const [socket, setSocket] = useState(null);
+
+    useEffect(() => {
+        const newSocket = io(`http://localhost:8080`, {
+            transports: ['websocket'],
+        });
+        setSocket(newSocket);
+        return () => newSocket.close();
+    }, [setSocket]);
 
     return (
         <div>
@@ -27,7 +65,14 @@ export default function Lobby() {
                 </thead>
                 <tbody>
                     {players.map((p, i) => (
-                        <tr key={p.ID}>
+                        <tr
+                            key={p.ID}
+                            style={{
+                                backgroundColor: player.isOwner
+                                    ? 'grey'
+                                    : 'white',
+                            }}
+                        >
                             <th scope='col'>#{i + 1}</th>
                             <th scope='col'>{p.name} </th>
                         </tr>

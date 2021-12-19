@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Toaster, Loading } from '../../../components';
 
 const ERR_ENTER_GAME_CODE = {
@@ -29,6 +29,7 @@ const ERR_GAME_CODE_INVALID = {
 
 export default function JoinGameEnterCode() {
     const history = useHistory();
+    const dispatch = useDispatch();
 
     const [gameCode, setGameCode] = useState('');
     const [toast, setToast] = useState({ show: 0, header: '', body: '' });
@@ -47,6 +48,11 @@ export default function JoinGameEnterCode() {
         if (res.status === 200) {
             const data = await res.json();
             console.log({ data });
+
+            dispatch({
+                type: 'SET_ROOM_OWNER',
+                payload: { ID: data.playerID, name: playerName },
+            });
 
             history.push('/lobby');
         } else {

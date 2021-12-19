@@ -61,7 +61,7 @@ export default function CreateGame() {
             dispatch({ type: 'SET_PLAYER_ID', payload: data.playerID });
             dispatch({
                 type: 'SET_ROOM_OWNER',
-                payload: { playerID: data.playerID, playerName },
+                payload: { ID: data.playerID, name: playerName },
             });
             history.push('/lobby');
         }

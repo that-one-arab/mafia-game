@@ -1,0 +1,7 @@
+* Implement socket in Lobby.js, listen to events in server
+socket requirements:
+    - if user leaves the lobby, a socket event will be emitted and lobby will be updated
+    - if user joins the lobby, a socket event will be emitted and lobby will be updated
+    - if admin leaves the lobby, a socket event will be emitted and lobby (game) will be destroyed
+    - if lobby is full, a socket event will be emitted and game will start
+    ALL THIS WHILE MAKING SURE EACH ROOM IS SEPERATE WHEN LISTENING TO EVENTS (Try and do it with room ID/code ?)
