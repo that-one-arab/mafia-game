@@ -1,11 +1,11 @@
 const express = require('express');
 
-const { uuid } = require('../helpers');
+const { uuid, validatePlayersAmount } = require('../helpers');
 const { Room } = require('../models');
 
 const app = (module.exports = express());
 
-app.get('/api/room', async (req, res) => {
+app.get('/room', async (req, res) => {
     try {
         const { roomCode } = req.query;
         const room = await Room.findOne({ roomCode });
@@ -17,7 +17,8 @@ app.get('/api/room', async (req, res) => {
     }
 });
 
-app.post('/api/room', async (req, res) => {
+app.post('/room', async (req, res) => {
+    console.log({ body: req.body });
     const { playersAmount, playerName } = req.body;
     console.log({ playersAmount, playerName });
 

@@ -2,16 +2,16 @@ require('dotenv').config();
 
 const mongoose = require('mongoose');
 const express = require('express');
-const socket = require('socket.io');
+const socketIO = require('socket.io');
 const cors = require('cors');
 const routes = require('./src/routes');
 
 const app = express();
 
-app.use('/api', routes);
-
 app.use(cors());
 app.use(express.json());
+
+app.use('/api', routes);
 
 const connectToDB = async () => {
     const db = await new Promise((resolve, reject) => {
@@ -51,32 +51,22 @@ const initializeServer = async (port = undefined) => {
     return server;
 };
 
-const initializeSocketConn = async (server) => {
-    const io = await new Promise((resolve, reject) => {
-        try {
-            const io = socket(server);
-
-            io.on('connection', function (socket) {
-                console.log('Made socket connection');
-                socket.on('disconnect', () => {
-                    console.log('user disconnected');
-                });
-            });
-            resolve(io);
-        } catch (error) {
-            reject(error);
-        }
-    });
-    return io;
-};
-
 const startServer = () => {};
 
 (async () => {
     try {
         await connectToDB();
         const server = await initializeServer(8080);
-        const io = await initializeSocketConn(server);
+
+        const io = socketIO(server);
+
+        io.on('connection', function (socket) {
+            console.log('Made socket connection');
+
+            socket.on('disconnect', () => {
+                console.log('user disconnected');
+            });
+        });
     } catch (error) {
         console.error(error);
     }
