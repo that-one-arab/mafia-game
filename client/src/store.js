@@ -10,6 +10,7 @@ const initialState = {
     },
     game: {
         roomCode: '',
+        isRoomVerified: false,
         joinedPlayers: [],
         roomOwner: {},
     },
@@ -63,6 +64,15 @@ const reducer = (state = initialState, action) => {
                 player: {
                     ...state.player,
                     ID: playerIDPayload,
+                },
+            };
+
+        case 'SET_ROOM_VERIFIED':
+            return {
+                ...state,
+                game: {
+                    ...state.game,
+                    isRoomVerified: true,
                 },
             };
 

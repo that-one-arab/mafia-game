@@ -10,7 +10,7 @@ app.get('/room', async (req, res) => {
         const { roomCode } = req.query;
         const room = await Room.findOne({ roomCode });
         if (!room) return res.status(400).json('Room was not found');
-        return res.json(room);
+        return res.json('Room found');
     } catch (error) {
         console.error(error);
     }

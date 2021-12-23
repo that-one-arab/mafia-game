@@ -1,4 +1,4 @@
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import io from 'socket.io-client';
 import { useEffect, useState } from 'react';
 
@@ -25,8 +25,10 @@ const parseGamePlayers = (player, players, owner) => {
 };
 
 export default function Lobby() {
+    const dispatch = useDispatch();
     const player = useSelector((state) => state.player);
-    const { roomCode, roomOwner, joinedPlayers } = useSelector(
+    /** Redux main state */
+    const { roomCode, roomOwner, joinedPlayers, isRoomVerified } = useSelector(
         (state) => state.game
     );
 
@@ -35,6 +37,7 @@ export default function Lobby() {
     /** An array of players that are parsed according to certain cases (who's the owner, who's the current player etc...) */
     const players = parseGamePlayers(player, joinedPlayers, roomOwner);
 
+    /** WebSocket */
     const [socket, setSocket] = useState(null);
 
     /** Socket initialization */
@@ -52,13 +55,21 @@ export default function Lobby() {
         if (socket) {
             /** Initial room code verification */
             if (roomCode) {
-                console.log('emittingverify-room with roomCode :', roomCode);
                 socket.emit('verify-room', roomCode, (response) => {
                     console.log('Response arrived, res: ', response);
+                    if (response.status === 200)
+                        dispatch({ type: 'SET_ROOM_VERIFIED' });
                 });
             }
         }
-    }, [socket, roomCode]);
+    }, [socket, roomCode, dispatch]);
+    useEffect(() => {
+        if (socket) {
+            if (isRoomVerified) {
+                /** Do something */
+            }
+        }
+    }, [socket, isRoomVerified]);
 
     return (
         <div>

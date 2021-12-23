@@ -67,12 +67,8 @@ const startServer = () => {};
             console.log('A socket connected to the lobby namespace');
 
             socket.on('verify-room', async (roomCode, responseCb) => {
-                console.log(
-                    'verify-room event triggered, roomCode arg: ',
-                    roomCode
-                );
                 const room = await Room.findOne({ roomCode });
-                console.log('found room :', room);
+                console.log({ room });
                 if (!room)
                     responseCb({
                         status: 400,
@@ -80,9 +76,11 @@ const startServer = () => {};
                         room: null,
                     });
 
+                socket.join(room.roomCode);
+
                 responseCb({
                     status: 200,
-                    message: 'Room was found, joining socket to room',
+                    message: 'Room was found, joined socket to room',
                     room,
                 });
             });

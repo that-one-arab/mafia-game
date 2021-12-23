@@ -40,26 +40,14 @@ export default function JoinGameEnterCode() {
     const setGameCodeHandler = (e) => setGameCode(e.target.value);
 
     const getGameWithCodeHandler = async () => {
-        console.log({ gameCode });
         setLoading(true);
 
         const res = await fetch(`/api/room?roomCode=${gameCode}`);
         setLoading(false);
         if (res.status === 200) {
-            const data = await res.json();
-            console.log({ data });
-
-            console.log(
-                'setting room owner equal to values :',
-                data.owner.playerID,
-                data.owner.playerName
-            );
             dispatch({
-                type: 'SET_ROOM_OWNER',
-                payload: {
-                    ID: data.owner.playerID,
-                    name: data.owner.playerName,
-                },
+                type: 'SET_ROOM_CODE',
+                payload: gameCode,
             });
 
             history.push('/lobby');
