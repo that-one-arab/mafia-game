@@ -55,14 +55,18 @@ export default function Lobby() {
         if (socket) {
             /** Initial room code verification */
             if (roomCode) {
-                socket.emit('verify-room', roomCode, (response) => {
-                    console.log('Response arrived, res: ', response);
-                    if (response.status === 200)
-                        dispatch({ type: 'SET_ROOM_VERIFIED' });
-                });
+                socket.emit(
+                    'verify-join-room',
+                    { roomCode, playerName: player.name, playerID: player.ID },
+                    (response) => {
+                        console.log('Response arrived, res: ', response);
+                        if (response.status === 200)
+                            dispatch({ type: 'SET_ROOM_VERIFIED' });
+                    }
+                );
             }
         }
-    }, [socket, roomCode, dispatch]);
+    }, [socket, roomCode, dispatch, player]);
     useEffect(() => {
         if (socket) {
             if (isRoomVerified) {

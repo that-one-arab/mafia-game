@@ -6,6 +6,7 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const routes = require('./src/routes');
 const { Room } = require('./src/models');
+const { lobbyInterface } = require('./src/state');
 
 const app = express();
 
@@ -66,30 +67,52 @@ const startServer = () => {};
         lobbyNps.on('connection', (socket) => {
             console.log('A socket connected to the lobby namespace');
 
-            socket.on('verify-room', async (roomCode, responseCb) => {
-                const room = await Room.findOne({ roomCode });
-                console.log({ room });
-                if (!room)
-                    responseCb({
-                        status: 400,
-                        message: 'room was not found',
-                        room: null,
+            const lobby = JSON.parse(JSON.stringify(lobbyInterface));
+
+            socket.on(
+                'verify-join-room',
+                async ({ roomCode, playerName, playerID }, responseCb) => {
+                    const room = await Room.findOne({ roomCode });
+                    console.log({ room });
+                    if (!room)
+                        responseCb({
+                            status: 400,
+                            message: 'room was not found',
+                            room: null,
+                        });
+
+                    socket.join(room.roomCode);
+                    lobby.push({
+                        roomCode,
+                        players: [
+                            {
+                                playerName,
+                                playerID,
+                                isOwner: false,
+                            },
+                        ],
                     });
 
-                socket.join(room.roomCode);
+                    responseCb({
+                        status: 200,
+                        message: 'Room was found, joined socket to room',
+                        room,
+                    });
+                }
+            );
 
-                responseCb({
-                    status: 200,
-                    message: 'Room was found, joined socket to room',
-                    room,
-                });
+            lobbyNps.adapter.on('join-room', (room, id) => {
+                console.log(
+                    `socket ${id} has joined room ${room}. also our lobby arr is: `,
+                    lobby
+                );
             });
 
-            socket.join('room1');
-            // setInterval(() => {
-            //     console.log('emitting....');
-            //     lobbyNps.to('room1').emit('hello', 'there');
-            // }, 2000);
+            // io.of('/lobby').adapter.on('join-room', (room, id) => {
+            //     console.log(`socket ${id} has joined room ${room}`);
+            // });
+
+            // console.log('the rooms :', lobbyNps.adapter.rooms);
 
             socket.on('disconnect', () => {
                 console.log('a socket disconnected from the lobby namespace');
