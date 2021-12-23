@@ -49,9 +49,17 @@ export default function JoinGameEnterCode() {
             const data = await res.json();
             console.log({ data });
 
+            console.log(
+                'setting room owner equal to values :',
+                data.owner.playerID,
+                data.owner.playerName
+            );
             dispatch({
                 type: 'SET_ROOM_OWNER',
-                payload: { ID: data.playerID, name: playerName },
+                payload: {
+                    ID: data.owner.playerID,
+                    name: data.owner.playerName,
+                },
             });
 
             history.push('/lobby');

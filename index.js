@@ -5,6 +5,7 @@ const express = require('express');
 const socketIO = require('socket.io');
 const cors = require('cors');
 const routes = require('./src/routes');
+const { Room } = require('./src/models');
 
 const app = express();
 
@@ -59,6 +60,43 @@ const startServer = () => {};
         const server = await initializeServer(8080);
 
         const io = socketIO(server);
+
+        const lobbyNps = io.of('/lobby');
+
+        lobbyNps.on('connection', (socket) => {
+            console.log('A socket connected to the lobby namespace');
+
+            socket.on('verify-room', async (roomCode, responseCb) => {
+                console.log(
+                    'verify-room event triggered, roomCode arg: ',
+                    roomCode
+                );
+                const room = await Room.findOne({ roomCode });
+                console.log('found room :', room);
+                if (!room)
+                    responseCb({
+                        status: 400,
+                        message: 'room was not found',
+                        room: null,
+                    });
+
+                responseCb({
+                    status: 200,
+                    message: 'Room was found, joining socket to room',
+                    room,
+                });
+            });
+
+            socket.join('room1');
+            // setInterval(() => {
+            //     console.log('emitting....');
+            //     lobbyNps.to('room1').emit('hello', 'there');
+            // }, 2000);
+
+            socket.on('disconnect', () => {
+                console.log('a socket disconnected from the lobby namespace');
+            });
+        });
 
         io.on('connection', function (socket) {
             console.log('Made socket connection');

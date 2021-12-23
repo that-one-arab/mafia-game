@@ -32,18 +32,33 @@ export default function Lobby() {
 
     console.log({ player, roomCode, roomOwner, joinedPlayers });
 
+    /** An array of players that are parsed according to certain cases (who's the owner, who's the current player etc...) */
     const players = parseGamePlayers(player, joinedPlayers, roomOwner);
-    console.log({ players });
 
     const [socket, setSocket] = useState(null);
 
+    /** Socket initialization */
     useEffect(() => {
-        const newSocket = io(`http://localhost:8080`, {
+        const newSocket = io(`http://localhost:8080/lobby`, {
             transports: ['websocket'],
         });
         setSocket(newSocket);
         return () => newSocket.close();
     }, [setSocket]);
+
+    /** Socket events */
+    useEffect(() => {
+        /** Make sure the socket is not null */
+        if (socket) {
+            /** Initial room code verification */
+            if (roomCode) {
+                console.log('emittingverify-room with roomCode :', roomCode);
+                socket.emit('verify-room', roomCode, (response) => {
+                    console.log('Response arrived, res: ', response);
+                });
+            }
+        }
+    }, [socket, roomCode]);
 
     return (
         <div>

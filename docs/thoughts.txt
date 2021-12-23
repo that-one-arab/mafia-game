@@ -1,0 +1,25 @@
+
+We have two ways of communicating to the server:
+    HTTP requests
+    Websocket
+We use HTTP requests to create and join games
+    When we create a game, we send a POST request to the server and we get a game code as a response
+    When we join a game, we send a GET request to the server to validate our game code, and we get the room object as a response
+
+We use websockets to manage our lobby (keep track of the current players in the lobby) and to manage our game state
+    If a player leaves the lobby (disconnects from socket), we emit an event to inform other sockets that the player left
+    If a player joins the lobby (connects to socket), we emit an event to inform other sockets that the player left
+    Once all players joined, we emit an event to inform players that the game is ready to start
+
+    Once game started, we move players from lobby to game room
+
+
+So we should not send room information, and only create, and verify the room code
+The room information would be sent in the socket, and the socket would create a local state that would track changes happening
+in the room
+
+GAME:
+    We need to safely push all players, from the lobby room, to the game room
+    the game room would contain the current players, and their current actions and status
+    The game would only start if all the players have joined, and we await an event that will be emitted
+

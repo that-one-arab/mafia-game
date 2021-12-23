@@ -1,0 +1,4 @@
+- There will be an 'join-player' event that will have two conditions. if (playersAmount === joinedPlayers) it will emit
+    a game starting event, else it will join the player
+
+- There will be two namespaces, one for lobby, and one for game
