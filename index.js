@@ -6,6 +6,7 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const routes = require('./src/routes');
 const { Room } = require('./src/models');
+const { lobbyInterface } = require('./src/state');
 
 const app = express();
 
@@ -126,11 +127,11 @@ const startServer = () => {};
                     ],
                 });
 
-                responseCb({
-                    status: 200,
-                    message: 'Room was found, joined socket to room',
-                    room,
-                });
+            lobbyNps.adapter.on('join-room', (room, id) => {
+                console.log(
+                    `socket ${id} has joined room ${room}. also our lobby arr is: `,
+                    lobby
+                );
             });
 
             socket.on(
@@ -192,7 +193,6 @@ const startServer = () => {};
                 console.log(`socket ${id} has joined room ${room}`);
                 const lobbyCopy = JSON.parse(JSON.stringify(lobby));
 
-                // const
             });
         });
 
