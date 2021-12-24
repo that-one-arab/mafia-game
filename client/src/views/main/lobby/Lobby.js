@@ -1,6 +1,8 @@
 import { useSelector, useDispatch } from 'react-redux';
 import io from 'socket.io-client';
 import { useEffect, useState } from 'react';
+import { Toaster } from '../../../components';
+import { useHistory } from 'react-router-dom';
 
 const parseGamePlayers = (player, players, owner) => {
     let res = [];
@@ -26,16 +28,19 @@ const parseGamePlayers = (player, players, owner) => {
 
 export default function Lobby() {
     const dispatch = useDispatch();
+    const history = useHistory();
     const player = useSelector((state) => state.player);
+    const [toast, setToast] = useState({ show: 0, header: '', body: '' });
+
     /** Redux main state */
-    const { roomCode, roomOwner, joinedPlayers, isRoomVerified } = useSelector(
+    const { roomCode, roomOwner, players, isRoomVerified } = useSelector(
         (state) => state.game
     );
 
-    console.log({ player, roomCode, roomOwner, joinedPlayers });
+    console.log({ player, roomCode, roomOwner, players });
 
     /** An array of players that are parsed according to certain cases (who's the owner, who's the current player etc...) */
-    const players = parseGamePlayers(player, joinedPlayers, roomOwner);
+    // const players = parseGamePlayers(player, joinedPlayers, roomOwner);
 
     /** WebSocket */
     const [socket, setSocket] = useState(null);
@@ -66,21 +71,30 @@ export default function Lobby() {
                             dispatch({ type: 'SET_ROOM_VERIFIED' });
                     });
                 } else {
+                    console.log(
+                        'emitting the following values :',
+                        roomCode,
+                        player.name
+                    );
                     socket.emit(
                         'join-room',
                         roomCode,
-                        player.ID,
                         player.name,
                         (response) => {
                             console.log('Response arrived, res: ', response);
                             if (response.status === 200)
                                 dispatch({ type: 'SET_ROOM_VERIFIED' });
+                            else if (response.status === 405) {
+                                history.push(
+                                    '/join-game/enter-code?joinStatus=room-full'
+                                );
+                            }
                         }
                     );
                 }
             }
         }
-    }, [socket, roomCode, dispatch, player, roomOwner]);
+    }, [socket, roomCode, dispatch, player, roomOwner, history]);
     useEffect(() => {
         if (socket) {
             if (isRoomVerified) {
@@ -89,8 +103,25 @@ export default function Lobby() {
         }
     }, [socket, isRoomVerified]);
 
+    useEffect(() => {
+        if (socket) {
+            socket.on('lobby-players', (res) => {
+                console.log('lobby-players emit :', res);
+                const { players } = res.payload;
+                console.log('players array from res :', players);
+
+                dispatch({ type: 'SET_PLAYERS', payload: players });
+
+                if (res.message === 'The game is about to start') {
+                    // START THE GAME
+                }
+            });
+        }
+    }, [socket, dispatch]);
+
     return (
         <div>
+            <Toaster toast={toast} setToast={setToast} />
             <div>
                 <button
                     onClick={() => {
@@ -117,13 +148,13 @@ export default function Lobby() {
                 <tbody>
                     {players.map((p, i) => (
                         <tr
-                            key={p.ID}
+                            key={p.playerID}
                             style={{
                                 backgroundColor: p.isOwner ? 'grey' : 'white',
                             }}
                         >
                             <th scope='col'>#{i + 1}</th>
-                            <th scope='col'>{p.name} </th>
+                            <th scope='col'>{p.playerName} </th>
                         </tr>
                     ))}
                 </tbody>

@@ -1,3 +1,4 @@
+const { uuid } = require('../helpers');
 const { Room } = require('../models');
 
 /**
@@ -5,7 +6,10 @@ const { Room } = require('../models');
  * 1- When a user creates a room, it will be added to the lobby array           DONE
  * 2- When a user leaves a room:
  *     - If the user is the only person in the room, room will be destroyed     DONE
- *     - If the room has 1 or more players, only the user will be removed
+ *     - If the user leaving is the owner, destroy the room                     DONE
+ *     - If the room has 1 or more players, only the user will be removed       DONE
+ * 3- When a user joins the room
+ *     - Emit event to room                                                     DONE
  */
 
 let lobby = [];
@@ -42,25 +46,34 @@ const findSocketIDIndexInLobby = (lobbyArr, socketID) => {
     };
 };
 
+const findRoomIDIndexInLobby = (lobbyArr, roomCode) => {
+    return lobbyArr.map((lobbyRoom) => lobbyRoom.roomCode).indexOf(roomCode);
+};
+
+/**
+ * @param {object} lobbyRoom the lobby room object
+ * @returns {object} same lobby room object, but in the players objects array, removed the socket ID property
+ */
+const parseLobbyRoomPayload = (lobbyRoom) => {
+    if (lobbyRoom && lobbyRoom.players && lobbyRoom.players.length) {
+        const parsedPlayers = lobbyRoom.players.map((player) => ({
+            playerID: player.playerID,
+            playerName: player.playerName,
+            isOwner: player.isOwner,
+        }));
+
+        return {
+            ...lobbyRoom,
+            players: parsedPlayers,
+        };
+    }
+    throw new Error('Unexpected input, expected a lobby with players array');
+};
+
 module.exports = (lobbyNps, socket) => {
     const createRoomHandler = async (roomCode, responseCb) => {
-        /** If room already exists (unlikely to happen why did I do this lol) */
-        const lobbyRoomIndex = lobby
-            .map((lobbyRoom) => lobbyRoom.roomCode)
-            .indexOf(roomCode);
-        if (
-            lobbyRoomIndex !== -1 &&
-            lobbyRoomIndex[lobbyRoomIndex].roomCode === roomCode
-        ) {
-            socket.join(room.roomCode);
-            responseCb({
-                status: 200,
-                message: 'Room already created, joined socket to room',
-                room,
-            });
-        }
         console.log('create-room event fired');
-        // console.log('fetching room with roomCode: "', roomCode, '"...');
+
         const room = await Room.findOne({ roomCode });
         if (!room) {
             console.warn('room with roomCode: "', roomCode, '" was not found!');
@@ -70,10 +83,8 @@ module.exports = (lobbyNps, socket) => {
                 room: null,
             });
         }
-        // console.log('room was fetched, room :', room);
 
         socket.join(room.roomCode);
-        // console.log('created socket room with code :', room.roomCode);
 
         lobby.push({
             roomCode,
@@ -86,29 +97,29 @@ module.exports = (lobbyNps, socket) => {
                 },
             ],
         });
-        console.log('created a new lobby entry with values :', {
-            roomCode,
-            players: [
-                {
-                    socketID: socket.id,
-                    playerID: room.owner.playerID,
-                    playerName: room.owner.playerName,
-                    isOwner: true,
-                },
-            ],
+
+        lobbyNps.to(room.roomCode).emit('lobby-players', {
+            message: 'Game was created',
+            payload: {
+                roomCode,
+                players: [
+                    {
+                        playerID: room.owner.playerID,
+                        playerName: room.owner.playerName,
+                        isOwner: true,
+                    },
+                ],
+            },
         });
     };
 
-    const joinRoomHandler = async (
-        roomCode,
-        playerID,
-        playerName,
-        responseCb
-    ) => {
+    const joinRoomHandler = async (roomCode, playerName, responseCb) => {
         console.log('join-room event fired');
-        // console.log('fetching room with roomCode: "', roomCode, '"...');
+
+        const newLobby = JSON.parse(JSON.stringify(lobby));
+
         const room = await Room.findOne({ roomCode });
-        console.log({ room });
+
         if (!room) {
             console.warn('room with roomCode: "', roomCode, '" was not found!');
             responseCb({
@@ -117,37 +128,66 @@ module.exports = (lobbyNps, socket) => {
                 room: null,
             });
         }
-        // console.log('room was fetched, room :', room);
+        const lobbyIndex = findRoomIDIndexInLobby(newLobby, roomCode);
 
-        socket.join(room.roomCode);
+        /** If the lobby is already full */
+        if (newLobby[lobbyIndex].players.length === room.playersAmount)
+            responseCb({
+                status: 405,
+                message: 'Room is already full',
+                room: null,
+            });
+        else {
+            socket.join(room.roomCode);
 
-        const lobbyRoomIndex = lobby
-            .map((lobbyRoom) => lobbyRoom.roomCode)
-            .indexOf(roomCode);
-        console.log('room index :', lobbyRoomIndex);
+            const playerID = uuid('PLR-');
 
-        console.log('current room :', lobby[lobbyRoomIndex]);
+            newLobby[lobbyIndex].players = [
+                ...lobby[lobbyIndex].players,
+                {
+                    socketID: socket.id,
+                    playerID: playerID,
+                    playerName: playerName,
+                    isOwner: false,
+                },
+            ];
 
-        lobby[lobbyRoomIndex].players = [
-            ...lobby[lobbyRoomIndex].players,
-            {
-                socketID: socket.id,
-                playerID: playerID,
-                playerName: playerName,
-                isOwner: false,
-            },
-        ];
+            /** If this is the last player that will fill the lobby */
+            if (newLobby[lobbyIndex].players.length === room.playersAmount) {
+                console.log('Game starting condition fullfilled');
 
-        console.log('new lobby :', lobby);
+                /** Emit a message to all sockets in the room */
+                lobbyNps.to(room.roomCode).emit('lobby-players', {
+                    message: 'The game is about to start',
+                    payload: parseLobbyRoomPayload(newLobby[lobbyIndex]),
+                });
+            } /** Else we proceed with joining the player to the lobby */ else {
+                console.log(
+                    'expecting ',
+                    room.playersAmount - newLobby[lobbyIndex].players.length,
+                    ' more players'
+                );
+                /** Emit a message to all sockets in the room */
+                lobbyNps.to(room.roomCode).emit('lobby-players', {
+                    message: 'A player has joined',
+                    payload: parseLobbyRoomPayload(newLobby[lobbyIndex]),
+                });
+            }
 
-        responseCb({
-            status: 200,
-            message: 'Room was found, joined socket to room',
-            room,
-        });
+            console.log('new lobby :', newLobby);
+
+            /** Update lobby cache */
+            lobby = newLobby;
+
+            responseCb({
+                status: 200,
+                message: 'Room was found, joined socket to room',
+                room,
+            });
+        }
     };
 
-    const leaveRoomHandler = (room, id) => {
+    const leaveRoomHandler = async (room, id) => {
         const { found, lobbyIndex, playersIndex } = findSocketIDIndexInLobby(
             lobby,
             id
@@ -158,9 +198,39 @@ module.exports = (lobbyNps, socket) => {
         if (found) {
             /** If only one player remains in the room, remove the room from lobby */
             if (newLobby[lobbyIndex].players.length === 1) {
+                // No need to emit an event because there are no players
+
+                /** Destroy the room */
+                await Room.deleteOne({
+                    roomCode: newLobby[lobbyIndex].roomCode,
+                });
+                newLobby.splice(lobbyIndex, 1);
+            } /** Else if the player exiting is the owner of the room */ else if (
+                newLobby[lobbyIndex].players[playersIndex].isOwner === true
+            ) {
+                /** Emit a message to all sockets in the room */
+                lobbyNps
+                    .to(newLobby[lobbyIndex].roomCode)
+                    .emit('lobby-players', {
+                        message: 'Lobby room owner has exited',
+                        payload: null,
+                    });
+
+                /** Destroy the room */
+                await Room.deleteOne({
+                    roomCode: newLobby[lobbyIndex].roomCode,
+                });
                 newLobby.splice(lobbyIndex, 1);
             } /** Else only remove the player who left */ else {
                 newLobby[lobbyIndex].players.splice(playersIndex, 1);
+
+                /** Emit a message to all sockets in the room */
+                lobbyNps
+                    .to(newLobby[lobbyIndex].roomCode)
+                    .emit('lobby-players', {
+                        message: 'A player has left',
+                        payload: parseLobbyRoomPayload(newLobby[lobbyIndex]),
+                    });
             }
 
             lobby = newLobby;
@@ -169,13 +239,13 @@ module.exports = (lobbyNps, socket) => {
 
     console.log('A socket connected to the lobby namespace');
 
-    lobbyNps.adapter.on('leave-room', leaveRoomHandler);
-
     socket.on('join-room', joinRoomHandler);
 
     socket.on('create-room', createRoomHandler);
 
-    socket.on('log-server-vals', () => {
+    lobbyNps.adapter.on('leave-room', leaveRoomHandler);
+
+    socket.on('log-server-vals', async () => {
         console.log({ lobby });
     });
 };

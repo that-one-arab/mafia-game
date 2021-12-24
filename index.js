@@ -5,7 +5,6 @@ const express = require('express');
 const socketIO = require('socket.io');
 const cors = require('cors');
 const routes = require('./src/routes');
-const { joinRoomHandler, createRoomHandler } = require('./src/events');
 const lobbyHandler = require('./src/events/lobbyHandler');
 
 const app = express();

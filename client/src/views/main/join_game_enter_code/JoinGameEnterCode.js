@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Toaster, Loading } from '../../../components';
 
@@ -27,9 +27,24 @@ const ERR_GAME_CODE_INVALID = {
     body: 'Your game code is invalid. Please double check your game code and try again',
 };
 
+const ERR_ROOM_FULL = {
+    show: 1,
+    header: 'Room full',
+    body: 'This room is full, please check with the lobby owner',
+};
+
+// A custom hook that builds on useLocation to parse
+// the query string for you.
+function useQuery() {
+    const { search } = useLocation();
+
+    return React.useMemo(() => new URLSearchParams(search), [search]);
+}
+
 export default function JoinGameEnterCode() {
     const history = useHistory();
     const dispatch = useDispatch();
+    const query = useQuery();
 
     const [gameCode, setGameCode] = useState('');
     const [toast, setToast] = useState({ show: 0, header: '', body: '' });
@@ -65,6 +80,15 @@ export default function JoinGameEnterCode() {
             setToast({ ...ERR_NO_PLAYER_NAME, show: toast.show + 1 });
         else await getGameWithCodeHandler();
     };
+
+    useEffect(() => {
+        if (query.get('joinStatus') === 'room-full') {
+            setToast((prevVal) => ({
+                ...ERR_ROOM_FULL,
+                show: prevVal.show + 1,
+            }));
+        }
+    }, [query]);
 
     return (
         <div>
