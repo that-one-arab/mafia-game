@@ -92,6 +92,13 @@ export default function Lobby() {
     return (
         <div>
             <div>
+                <button
+                    onClick={() => {
+                        socket.emit('log-server-vals');
+                    }}
+                >
+                    Log server vals
+                </button>
                 <h1>This is the lobby!</h1>
                 <p> Your code is </p>
                 <h2>{roomCode} </h2>

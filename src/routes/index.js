@@ -17,15 +17,15 @@ app.get('/room', async (req, res) => {
 });
 
 app.post('/room', async (req, res) => {
-    console.log({ body: req.body });
+    // console.log({ body: req.body });
     const { playersAmount, playerName } = req.body;
-    console.log({ playersAmount, playerName });
+    // console.log({ playersAmount, playerName });
 
     await validatePlayersAmount(playersAmount);
 
     const playerID = uuid('PLR-');
     const roomCode = uuid('', '', { idFor: 'ROOM_CODE' });
-    console.log({ roomCode, playerID });
+    // console.log({ roomCode, playerID });
 
     const room = new Room({
         roomCode,
@@ -36,10 +36,10 @@ app.post('/room', async (req, res) => {
         },
         creationDate: new Date(),
     });
-    console.log({ room });
+    // console.log({ room });
 
     await room.save();
-    console.log('saved the room');
+    // console.log('saved the room');
 
     return res.status(201).json({ roomCode, playerID });
 });
