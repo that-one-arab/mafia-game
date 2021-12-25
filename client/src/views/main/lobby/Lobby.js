@@ -27,7 +27,7 @@ const parseGamePlayers = (player, players, owner) => {
     return res;
 };
 
-function Countdown({ gameStarting }) {
+function Countdown({ gameStarting, setTimerEnded }) {
     const [timer, setTimer] = useState(10);
     // console.log({ timer });
 
@@ -37,7 +37,8 @@ function Countdown({ gameStarting }) {
 
     useEffect(() => {
         if (!gameStarting) setTimer(10);
-    }, [gameStarting, timer]);
+        if (timer === 0) setTimerEnded(true);
+    }, [gameStarting, timer, setTimerEnded]);
 
     if (gameStarting) {
         return (
@@ -55,6 +56,8 @@ export default function Lobby() {
     const [toast, setToast] = useState({ show: 0, header: '', body: '' });
     const [gameReadyToStart, setGameReadyToStart] = useState(false);
     const [gameStarting, setGameStarting] = useState(false);
+    const [readyToBePushed, setReadyToBePushed] = useState(false);
+    const [timerEnded, setTimerEnded] = useState(false);
     // console.log({ gameStarting });
 
     /** Redux main state */
@@ -83,7 +86,7 @@ export default function Lobby() {
         return () => newSocket.close();
     }, [setSocket]);
 
-    /** Room owner socket event */
+    /** create-room emitter (Room owner socket event) */
     useEffect(() => {
         /** Make sure the socket is not null */
         if (socket) {
@@ -100,7 +103,7 @@ export default function Lobby() {
         }
     }, [socket, roomCode, dispatch, player, roomOwner]);
 
-    /** Player joining room socket event */
+    /** join-room emitter (Player joining room socket event) */
     useEffect(() => {
         if (socket) {
             /** the player.ID field populates from the below response, here we make sure it runs only once */
@@ -123,15 +126,7 @@ export default function Lobby() {
         }
     }, [roomCode, dispatch, history, player, roomOwner, socket]);
 
-    useEffect(() => {
-        if (socket) {
-            if (isRoomVerified) {
-                /** Do something */
-            }
-        }
-    }, [socket, isRoomVerified]);
-
-    /** lobby-players event (server feeds us information about the room here) */
+    /** lobby-players listener (server feeds us information about the room here) */
     useEffect(() => {
         if (socket) {
             socket.on('lobby-players', (res) => {
@@ -162,27 +157,65 @@ export default function Lobby() {
         }
     }, [socket, dispatch, history, player.ID]);
 
+    /** create-game-room emitter (once players are ready, has game owner create a game room) */
     useEffect(() => {
         if (socket) {
             if (gameReadyToStart && player.ID !== '') {
                 console.log(
-                    'Message = "The game is about to start", emitting "start-game-confirm"'
+                    'game ready to start, emitting create-game-room...'
                 );
-                socket.emit('start-game-confirm', player.ID, (res) => {
-                    console.log('start-game-confirm res :', res);
-                    if (res.status === 201 || res.status === 200) {
-                        console.log('setting gameStarting to true');
-                        setGameStarting(true);
-                    }
+                socket.emit('create-game-room', player.ID, (res) => {
+                    console.log('create-game-room res :', res);
                 });
             }
         }
     }, [socket, gameReadyToStart, playersAmount, players, player]);
 
+    useEffect(() => {
+        if (socket) {
+            socket.on('game-room-created', () => {
+                console.log('setting gameStarting to true');
+                setGameStarting(true);
+            });
+        }
+    }, [socket]);
+
+    /** join-game-room emitter (once players are ready, and countdown has finished, has players join a game room) */
+    useEffect(() => {
+        if (socket) {
+            if (gameStarting && player.ID !== '') {
+                console.log('game starting, emitting join-game-room...');
+                socket.emit('join-game-room', player.ID, (res) => {
+                    console.log('join-game-room res :', res);
+                });
+            }
+        }
+    }, [socket, gameStarting, playersAmount, players, player]);
+
+    /** proceed-to-game listener (after countdown is finished, pushes players to /game route) */
+    useEffect(() => {
+        if (socket) {
+            socket.on('proceed-to-game', () => {
+                console.log(
+                    'proceed-to-game emitted, setting readyToBePushed to true'
+                );
+                setReadyToBePushed(true);
+            });
+        }
+
+        if (timerEnded && readyToBePushed) {
+            console.log('proceeding to game');
+            history.push('/game');
+        }
+    }, [socket, history, timerEnded, readyToBePushed]);
+
     return (
         <div>
             <Toaster toast={toast} setToast={setToast} />
-            <Countdown gameStarting={gameStarting} />
+            <Countdown
+                gameStarting={gameStarting}
+                setTimerEnded={setTimerEnded}
+            />
             <div>
                 <button
                     onClick={() => {

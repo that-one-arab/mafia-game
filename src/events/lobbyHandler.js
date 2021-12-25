@@ -193,6 +193,11 @@ module.exports = (lobbyNps, socket) => {
             } /** Else only remove the player who left */ else {
                 newLobby[lobbyIndex].players.splice(playersIndex, 1);
 
+                /** Destroy the game room (if exists) */
+                await Game.deleteOne({
+                    gameCode: newLobby[lobbyIndex].roomCode,
+                });
+
                 /** Emit a message to all sockets in the room */
                 lobbyNps
                     .to(newLobby[lobbyIndex].roomCode)
@@ -214,12 +219,10 @@ module.exports = (lobbyNps, socket) => {
 
     lobbyNps.adapter.on('leave-room', leaveRoomHandler);
 
-    socket.on('start-game-confirm', async (playerID, responseCb) => {
+    socket.on('create-game-room', async (playerID, responseCb) => {
         console.log(
             '--------- start-game-confirm ------  playerID :',
-            playerID,
-            ' socketID: ',
-            socket.id
+            playerID
         );
         const { found, lobbyIndex, playersIndex } = findPlayerIDIndexInLobby(
             lobby,
@@ -234,64 +237,90 @@ module.exports = (lobbyNps, socket) => {
             });
         } else {
             const { roomCode, playersAmount, players } = lobby[lobbyIndex];
-            let game = await Game.findOne({ gameCode: roomCode });
-            console.log('game :', game);
 
-            /** If game players amount option does not equal the current players */
+            /** If the selected game players amount does not equal the current players in lobby */
             if (playersAmount !== players.length) {
                 responseCb({
-                    status: 400,
-                    message: 'One of the players left, game cannot start',
-                    game: null,
+                    status: 405,
+                    message:
+                        'Current players do not satisfy players amount option',
+                    room: null,
                 });
-            } else if (!game) {
-                game = new Game({
+            } else {
+                const game = new Game({
                     gameCode: roomCode,
                     playersAmount,
                     players: players[playersIndex],
                 });
 
                 await game.save();
-                console.log('game saved');
+                console.log('game created');
 
                 responseCb({
                     status: 201,
                     message: 'Game created',
                     game,
                 });
-            } else if (game.players.length + 1 === playersAmount) {
-                game.players = [
-                    ...game.players,
-                    /** Is an object */
-                    players[playersIndex],
-                ];
 
-                await game.save();
-                console.log('game updated and saved');
-
-                responseCb({
-                    status: 200,
-                    message: 'Start countdown',
-                    game,
-                });
-            } else {
-                game.players = [
-                    ...game.players,
-                    /** Is an object */
-                    players[playersIndex],
-                ];
-
-                await game.save();
-                console.log('game updated and saved');
-
-                responseCb({
-                    status: 200,
-                    message: 'Game updated',
-                    game,
-                });
+                lobbyNps.to(roomCode).emit('game-room-created');
             }
+        }
+    });
 
-            console.log('game updated :', game);
+    socket.on('join-game-room', async (playerID, responseCb) => {
+        console.log('join-game-room :', {
+            playerID,
+            socketID: socket.id,
+        });
+        const { found, lobbyIndex, playersIndex } = findPlayerIDIndexInLobby(
+            lobby,
+            playerID
+        );
+        if (!found) {
+            responseCb({
+                status: 400,
+                message: 'Lobby room not found',
+                room: null,
+            });
+        } else {
+            const { roomCode, players, playersAmount } = lobby[lobbyIndex];
+
+            const game = await Game.findOne({ gameCode: roomCode });
+
+            if (!game)
+                responseCb({
+                    status: 400,
+                    message: 'Game room not found',
+                    room: null,
+                });
+            else {
+                game.players = [
+                    ...game.players,
+                    /** Is an object */
+                    players[playersIndex],
+                ];
+
+                await game.save();
+                console.log('game updated and saved');
+
+                console.log('current players :', game.players);
+                console.log('playersAmount :', playersAmount);
+                console.log(
+                    'players left :',
+                    playersAmount - game.players.length
+                );
+
+                responseCb({
+                    status: 200,
+                    message: 'Players joined',
+                    game,
+                });
+
+                if (game.players.length === 2) {
+                    console.log('ready to proceed');
+                    lobbyNps.to(roomCode).emit('proceed-to-game');
+                }
+            }
         }
     });
 

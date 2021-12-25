@@ -41,15 +41,15 @@ module.exports = {
     findPlayerIDIndexInLobby: (lobbyArr, playerID) => {
         for (let i = 0; i < lobbyArr.length; i++) {
             const room = lobbyArr[i];
-            console.log('looping through room :', room);
+            // console.log('looping through room :', room);
 
             if (room.players && room.players.length) {
                 for (let j = 0; j < room.players.length; j++) {
                     const player = room.players[j];
-                    console.log('looping through player :', player);
+                    // console.log('looping through player :', player);
 
                     if (player.playerID === playerID) {
-                        console.log('found match :', playerID);
+                        // console.log('found match :', playerID);
                         return {
                             found: true,
                             lobbyIndex: i,

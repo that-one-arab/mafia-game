@@ -18,27 +18,6 @@ app.get('/room', async (req, res) => {
     }
 });
 
-app.get('/insert-dummy-room', async () => {
-    const roomCode = '123456';
-    const playerID = 'player-1';
-    const playerName = 'Jeff';
-    const playersAmount = 4;
-
-    const room = new Room({
-        roomCode,
-        playersAmount,
-        owner: {
-            playerID,
-            playerName,
-        },
-        creationDate: new Date(),
-    });
-
-    await room.save();
-
-    return res.status(201).json({ roomCode, playerID });
-});
-
 app.post('/room', async (req, res) => {
     // console.log({ body: req.body });
     const { playersAmount, playerName } = req.body;
