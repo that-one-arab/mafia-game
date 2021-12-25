@@ -1,74 +1,40 @@
 const { uuid } = require('../helpers');
-const { Room } = require('../models');
-
-/**
- * OBJECTIVES:
- * 1- When a user creates a room, it will be added to the lobby array           DONE
- * 2- When a user leaves a room:
- *     - If the user is the only person in the room, room will be destroyed     DONE
- *     - If the user leaving is the owner, destroy the room                     DONE
- *     - If the room has 1 or more players, only the user will be removed       DONE
- * 3- When a user joins the room
- *     - Emit event to room                                                     DONE
- */
+const { Room, Game } = require('../models');
+const {
+    findSocketIDIndexInLobby,
+    findRoomIDIndexInLobby,
+    parseLobbyRoomPayload,
+    findPlayerIDIndexInLobby,
+} = require('./util');
 
 let lobby = [];
 
-const findSocketIDIndexInLobby = (lobbyArr, socketID) => {
-    for (let i = 0; i < lobbyArr.length; i++) {
-        const room = lobbyArr[i];
-
-        if (room.players && room.players.length) {
-            for (let j = 0; j < room.players.length; j++) {
-                const player = room.players[j];
-
-                if (player.socketID === socketID) {
-                    // console.info(
-                    //     'found socket with ID: "',
-                    //     socketID,
-                    //     '" At indexes: ',
-                    //     i,
-                    //     j
-                    // );
-
-                    return {
-                        found: true,
-                        lobbyIndex: i,
-                        playersIndex: j,
-                    };
-                }
-            }
-        }
-    }
-
-    return {
-        found: false,
-    };
-};
-
-const findRoomIDIndexInLobby = (lobbyArr, roomCode) => {
-    return lobbyArr.map((lobbyRoom) => lobbyRoom.roomCode).indexOf(roomCode);
-};
-
-/**
- * @param {object} lobbyRoom the lobby room object
- * @returns {object} same lobby room object, but in the players objects array, removed the socket ID property
- */
-const parseLobbyRoomPayload = (lobbyRoom) => {
-    if (lobbyRoom && lobbyRoom.players && lobbyRoom.players.length) {
-        const parsedPlayers = lobbyRoom.players.map((player) => ({
-            playerID: player.playerID,
-            playerName: player.playerName,
-            isOwner: player.isOwner,
-        }));
-
-        return {
-            ...lobbyRoom,
-            players: parsedPlayers,
-        };
-    }
-    throw new Error('Unexpected input, expected a lobby with players array');
-};
+lobby = [
+    {
+        roomCode: '123456',
+        playersAmount: 4,
+        players: [
+            {
+                socketID: 'socket-1',
+                playerID: 'player-1',
+                playerName: 'Jeff',
+                isOwner: true,
+            },
+            {
+                socketID: 'socket-2',
+                playerID: 'player-2',
+                playerName: 'Mike',
+                isOwner: false,
+            },
+            {
+                socketID: 'socket-3',
+                playerID: 'player-3',
+                playerName: 'Luey',
+                isOwner: false,
+            },
+        ],
+    },
+];
 
 module.exports = (lobbyNps, socket) => {
     const createRoomHandler = async (roomCode, responseCb) => {
@@ -88,6 +54,7 @@ module.exports = (lobbyNps, socket) => {
 
         lobby.push({
             roomCode,
+            playersAmount: room.playersAmount,
             players: [
                 {
                     socketID: socket.id,
@@ -102,6 +69,7 @@ module.exports = (lobbyNps, socket) => {
             message: 'Game was created',
             payload: {
                 roomCode,
+                playersAmount: room.playersAmount,
                 players: [
                     {
                         playerID: room.owner.playerID,
@@ -183,6 +151,7 @@ module.exports = (lobbyNps, socket) => {
                 status: 200,
                 message: 'Room was found, joined socket to room',
                 room,
+                playerID,
             });
         }
     };
@@ -244,6 +213,87 @@ module.exports = (lobbyNps, socket) => {
     socket.on('create-room', createRoomHandler);
 
     lobbyNps.adapter.on('leave-room', leaveRoomHandler);
+
+    socket.on('start-game-confirm', async (playerID, responseCb) => {
+        console.log(
+            '--------- start-game-confirm ------  playerID :',
+            playerID,
+            ' socketID: ',
+            socket.id
+        );
+        const { found, lobbyIndex, playersIndex } = findPlayerIDIndexInLobby(
+            lobby,
+            playerID
+        );
+
+        if (!found) {
+            responseCb({
+                status: 400,
+                message: 'Not found',
+                room: null,
+            });
+        } else {
+            const { roomCode, playersAmount, players } = lobby[lobbyIndex];
+            let game = await Game.findOne({ gameCode: roomCode });
+            console.log('game :', game);
+
+            /** If game players amount option does not equal the current players */
+            if (playersAmount !== players.length) {
+                responseCb({
+                    status: 400,
+                    message: 'One of the players left, game cannot start',
+                    game: null,
+                });
+            } else if (!game) {
+                game = new Game({
+                    gameCode: roomCode,
+                    playersAmount,
+                    players: players[playersIndex],
+                });
+
+                await game.save();
+                console.log('game saved');
+
+                responseCb({
+                    status: 201,
+                    message: 'Game created',
+                    game,
+                });
+            } else if (game.players.length + 1 === playersAmount) {
+                game.players = [
+                    ...game.players,
+                    /** Is an object */
+                    players[playersIndex],
+                ];
+
+                await game.save();
+                console.log('game updated and saved');
+
+                responseCb({
+                    status: 200,
+                    message: 'Start countdown',
+                    game,
+                });
+            } else {
+                game.players = [
+                    ...game.players,
+                    /** Is an object */
+                    players[playersIndex],
+                ];
+
+                await game.save();
+                console.log('game updated and saved');
+
+                responseCb({
+                    status: 200,
+                    message: 'Game updated',
+                    game,
+                });
+            }
+
+            console.log('game updated :', game);
+        }
+    });
 
     socket.on('log-server-vals', async () => {
         console.log({ lobby });

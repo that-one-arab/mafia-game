@@ -33,6 +33,12 @@ const ERR_ROOM_FULL = {
     body: 'This room is full, please check with the lobby owner',
 };
 
+const ERR_LOBBY_OWNER_LEFT = {
+    show: 1,
+    header: 'Room owner left',
+    body: 'The lobby owner has left the room',
+};
+
 // A custom hook that builds on useLocation to parse
 // the query string for you.
 function useQuery() {
@@ -81,10 +87,17 @@ export default function JoinGameEnterCode() {
         else await getGameWithCodeHandler();
     };
 
+    /** This would fire if: player joins a lobby; lobby is already full; lobby route pushed player back to join-game-enter-code route and adds a ?joinStatus=room-full query param */
     useEffect(() => {
-        if (query.get('joinStatus') === 'room-full') {
+        const joinStatus = query.get('joinStatus');
+        if (joinStatus === 'room-full') {
             setToast((prevVal) => ({
                 ...ERR_ROOM_FULL,
+                show: prevVal.show + 1,
+            }));
+        } else if (joinStatus === 'lobby-owner-exited') {
+            setToast((prevVal) => ({
+                ...ERR_LOBBY_OWNER_LEFT,
                 show: prevVal.show + 1,
             }));
         }

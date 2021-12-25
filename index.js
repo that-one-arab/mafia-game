@@ -52,8 +52,6 @@ const initializeServer = async (port = undefined) => {
     return server;
 };
 
-const startServer = () => {};
-
 (async () => {
     try {
         await connectToDB();
@@ -64,6 +62,7 @@ const startServer = () => {};
         const lobbyNps = io.of('/lobby');
 
         const onLobbyConnection = (socket) => {
+            /** MAYBE give this a 3rd param, which a global cache?  */
             lobbyHandler(lobbyNps, socket);
         };
 
