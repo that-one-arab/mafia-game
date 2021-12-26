@@ -8,9 +8,7 @@ const app = (module.exports = express());
 app.get('/lobby', async (req, res) => {
     try {
         const { lobbyCode } = req.query;
-        console.log(lobbyCode);
         const lobby = await Lobby.findOne({ lobbyCode });
-        console.log(lobby);
         if (!lobby) return res.status(400).json('Lobby was not found');
         return res.json('Lobby found');
     } catch (error) {

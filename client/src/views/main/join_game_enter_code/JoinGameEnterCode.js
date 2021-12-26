@@ -70,6 +70,7 @@ export default function JoinGameEnterCode() {
                 type: 'SET_LOBBY_CODE',
                 payload: gameCode,
             });
+            dispatch({ type: 'SET_ROOM_OWNER_FALSE' });
 
             history.push('/lobby');
         } else {

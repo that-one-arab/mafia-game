@@ -122,8 +122,8 @@ const stopCountdownHandler = (io, roomIndex, lobbyCode) => {
     io.to(lobbyCode).emit('stop-countdown');
 };
 
-const emitStartGame = (io, lobbyCode) => {
-    io.to(lobbyCode).emit('start-game');
+const emitStartGame = (io, lobbyCode, gameCreated) => {
+    io.to(lobbyCode).emit('start-game', gameCreated);
 };
 
 module.exports = (lobbyNps, socket) => {
@@ -212,11 +212,24 @@ module.exports = (lobbyNps, socket) => {
                         playerName,
                     });
 
+                    console.log(
+                        'player number :',
+                        players.length,
+                        ' joined the room'
+                    );
+
+                    console.log(
+                        'as players, sending value :',
+                        lobby[lobbyRoomIndex].players
+                    );
+
                     emitLobbyPlayers(lobbyNps, lobbyCode, {
                         playersAmount,
                         players: lobby[lobbyRoomIndex].players,
                         message: 'A player has joined',
                     });
+
+                    console.log('lobbyRoom modified :', lobby[lobbyRoomIndex]);
 
                     responseCb({
                         status: 200,
@@ -228,7 +241,7 @@ module.exports = (lobbyNps, socket) => {
                     if (isLastPlayer(lobbyRoomIndex)) {
                         emitLobbyPlayers(lobbyNps, lobbyCode, {
                             playersAmount,
-                            players,
+                            players: lobby[lobbyRoomIndex].players,
                             message: 'The game is about to start',
                         });
 
@@ -264,6 +277,10 @@ module.exports = (lobbyNps, socket) => {
                     reason: 'Lobby room owner has exited',
                 });
 
+                // lobbyNps
+                //     .in(lobby[lobbyRoomIndex].lobbyCode)
+                //     .socketsLeave(lobby[lobbyRoomIndex].lobbyCode);
+
                 await destroyLobbyRoom(lobbyRoomIndex);
             } /** Else only remove the player who left */ else {
                 removePlayerFromLobbyRoom(lobbyRoomIndex, playerIndex);
@@ -288,8 +305,6 @@ module.exports = (lobbyNps, socket) => {
         }
     };
 
-    console.log('A socket connected to the lobby namespace');
-
     socket.on('join-room', joinRoomHandler);
 
     socket.on('create-room', createRoomHandler);
@@ -298,11 +313,31 @@ module.exports = (lobbyNps, socket) => {
 
     socket.on('initialize-game', async (lobbyCode) => {
         try {
-            /** BLA BLA BLA */
+            // console.log('initialize-game event, received :', lobbyCode);
 
-            emitStartGame(lobbyNps, lobbyCode);
+            const lobbyRoomIndex = findRoomIDIndexInLobby(lobby, lobbyCode);
+
+            if (!lobbyRoomIndex) throw 'Lobby not found';
+
+            const { players, playersAmount } = lobby[lobbyRoomIndex];
+
+            const game = new Game({
+                gameCode: lobbyCode,
+                playersAmount,
+                players: players.map((player) => ({
+                    playerID: player.playerID,
+                    playerName: player.playerName,
+                })),
+                creationDate: new Date(),
+            });
+
+            await game.save();
+
+            emitStartGame(lobbyNps, lobbyCode, true);
         } catch (error) {
             console.error(error);
+
+            emitStartGame(lobbyNps, lobbyCode, false);
         }
     });
 

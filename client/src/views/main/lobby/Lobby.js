@@ -65,7 +65,7 @@ function Lobby({ socket }) {
 
     useEffect(() => {
         socket.on('lobby-players', (res) => {
-            console.log('listened to lobby-players');
+            console.log('listened to lobby-players, res: ', res);
             dispatch({ type: 'SET_PLAYERS', payload: res.payload.players });
         });
 
@@ -88,7 +88,23 @@ function Lobby({ socket }) {
             setTimer(10);
             setStartCountdown(false);
         });
-    }, [socket]);
+    }, [socket, history]);
+
+    useEffect(() => {
+        if (
+            myPlayer.isOwner &&
+            players.length === playersAmount &&
+            timer === 0
+        ) {
+            socket.emit('initialize-game', lobbyCode);
+        }
+    }, [socket, myPlayer.isOwner, players, playersAmount, timer, lobbyCode]);
+
+    useEffect(() => {
+        socket.on('start-game', () => {
+            history.push('/game');
+        });
+    }, [socket, history]);
 
     return (
         <div>

@@ -54,6 +54,15 @@ const reducer = (state = initialState, action) => {
                 },
             };
 
+        case 'SET_ROOM_OWNER_FALSE':
+            return {
+                ...state,
+                myPlayer: {
+                    ...state.myPlayer,
+                    isOwner: false,
+                },
+            };
+
         case 'SET_PLAYER_ID':
             const playerIDPayload = action.payload;
             return {
