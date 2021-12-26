@@ -56,18 +56,18 @@ export default function JoinGameEnterCode() {
     const [toast, setToast] = useState({ show: 0, header: '', body: '' });
     const [loading, setLoading] = useState(false);
 
-    const playerName = useSelector((state) => state.player.name);
+    const { playerName } = useSelector((state) => state.myPlayer);
 
     const setGameCodeHandler = (e) => setGameCode(e.target.value);
 
     const getGameWithCodeHandler = async () => {
         setLoading(true);
 
-        const res = await fetch(`/api/room?roomCode=${gameCode}`);
+        const res = await fetch(`/api/lobby?lobbyCode=${gameCode}`);
         setLoading(false);
         if (res.status === 200) {
             dispatch({
-                type: 'SET_ROOM_CODE',
+                type: 'SET_LOBBY_CODE',
                 payload: gameCode,
             });
 

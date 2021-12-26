@@ -21,7 +21,7 @@ export default function CreateGame() {
     const playersAmount = useSelector(
         (state) => state.gameOptions.playersAmount
     );
-    const playerName = useSelector((state) => state.player.name);
+    const playerName = useSelector((state) => state.myPlayer.playerName);
 
     const [toast, setToast] = useState({
         show: 0,
@@ -41,7 +41,7 @@ export default function CreateGame() {
 
     const createRoomHandler = async () => {
         setLoading(true);
-        const res = await fetch('/api/room', {
+        const res = await fetch('/api/lobby', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -57,12 +57,10 @@ export default function CreateGame() {
         if (res.status === 201) {
             const data = await res.json();
             console.log({ data });
-            dispatch({ type: 'SET_ROOM_CODE', payload: data.roomCode });
+            dispatch({ type: 'SET_LOBBY_CODE', payload: data.lobbyCode });
             dispatch({ type: 'SET_PLAYER_ID', payload: data.playerID });
-            dispatch({
-                type: 'SET_ROOM_OWNER',
-                payload: { ID: data.playerID, name: playerName },
-            });
+            dispatch({ type: 'SET_ROOM_OWNER_TRUE' });
+
             history.push('/lobby');
         }
     };

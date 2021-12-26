@@ -17,7 +17,7 @@ export default function JoinGame() {
         body: '',
     });
 
-    const playerName = useSelector((state) => state.player.name);
+    const { playerName } = useSelector((state) => state.myPlayer);
     const dispatch = useDispatch();
 
     const dispatchPlayerNameHandler = (e) =>

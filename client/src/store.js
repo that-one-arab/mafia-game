@@ -1,59 +1,56 @@
 import { createStore } from 'redux';
 
 const initialState = {
-    player: {
-        name: '',
-        ID: '',
+    myPlayer: {
+        playerName: '',
+        playerID: '',
+        socketID: '',
+        isOwner: false,
     },
     gameOptions: {
         playersAmount: 0,
     },
-    game: {
-        roomCode: '',
-        isRoomVerified: false,
+    lobby: {
+        lobbyCode: '',
         players: [],
-        roomOwner: {},
     },
 };
 
 const reducer = (state = initialState, action) => {
     switch (action.type) {
         case 'SET_PLAYER_NAME':
-            const playerNameInput = action.payload;
             return {
                 ...state,
-                player: {
-                    ...state.player,
-                    name: playerNameInput,
+                myPlayer: {
+                    ...state.myPlayer,
+                    playerName: action.payload,
                 },
             };
 
         case 'SET_PLAYERS_AMOUNT':
-            const playersAmountInput = action.payload;
             return {
                 ...state,
                 gameOptions: {
                     ...state.gameOptions,
-                    playersAmount: playersAmountInput,
+                    playersAmount: action.payload,
                 },
             };
 
-        case 'SET_ROOM_CODE':
-            const roomCodePayload = action.payload;
+        case 'SET_LOBBY_CODE':
             return {
                 ...state,
-                game: {
-                    ...state.game,
-                    roomCode: roomCodePayload,
+                lobby: {
+                    ...state.lobby,
+                    lobbyCode: action.payload,
                 },
             };
 
-        case 'SET_ROOM_OWNER':
+        case 'SET_ROOM_OWNER_TRUE':
             return {
                 ...state,
-                game: {
-                    ...state.game,
-                    roomOwner: action.payload,
+                myPlayer: {
+                    ...state.myPlayer,
+                    isOwner: true,
                 },
             };
 
@@ -61,26 +58,26 @@ const reducer = (state = initialState, action) => {
             const playerIDPayload = action.payload;
             return {
                 ...state,
-                player: {
-                    ...state.player,
-                    ID: playerIDPayload,
+                myPlayer: {
+                    ...state.myPlayer,
+                    playerID: playerIDPayload,
                 },
             };
 
-        case 'SET_ROOM_VERIFIED':
-            return {
-                ...state,
-                game: {
-                    ...state.game,
-                    isRoomVerified: true,
-                },
-            };
+        // case 'SET_ROOM_VERIFIED':
+        //     return {
+        //         ...state,
+        //         game: {
+        //             ...state.game,
+        //             isRoomVerified: true,
+        //         },
+        //     };
 
         case 'SET_PLAYERS':
             return {
                 ...state,
-                game: {
-                    ...state.game,
+                lobby: {
+                    ...state.lobby,
                     players: action.payload,
                 },
             };

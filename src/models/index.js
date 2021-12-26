@@ -6,8 +6,8 @@ const playerSchema = new Schema({
     isOwner: Boolean,
 });
 
-const roomSchema = new Schema({
-    roomCode: String,
+const lobbySchema = new Schema({
+    lobbyCode: String,
     playersAmount: Number,
     players: [playerSchema],
     owner: playerSchema,
@@ -27,8 +27,8 @@ const playerAmountSchema = new Schema({
 
 const PlayerAmount = model('PlayerAmount', playerAmountSchema);
 
-const Room = model('Room', roomSchema);
+const Lobby = model('Lobby', lobbySchema);
 const Player = model('Player', playerSchema);
 const Game = model('Game', gameSchema);
 
-module.exports = { Room, Player, PlayerAmount, Game };
+module.exports = { Lobby, Player, PlayerAmount, Game };

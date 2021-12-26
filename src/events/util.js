@@ -8,18 +8,10 @@ module.exports = {
                     const player = room.players[j];
 
                     if (player.socketID === socketID) {
-                        // console.info(
-                        //     'found socket with ID: "',
-                        //     socketID,
-                        //     '" At indexes: ',
-                        //     i,
-                        //     j
-                        // );
-
                         return {
                             found: true,
-                            lobbyIndex: i,
-                            playersIndex: j,
+                            lobbyRoomIndex: i,
+                            playerIndex: j,
                         };
                     }
                 }
@@ -31,10 +23,10 @@ module.exports = {
         };
     },
 
-    findRoomIDIndexInLobby: (lobbyArr, roomCode) => {
+    findRoomIDIndexInLobby: (lobbyArr, lobbyCode) => {
         return lobbyArr
-            .map((lobbyRoom) => lobbyRoom.roomCode)
-            .indexOf(roomCode);
+            .map((lobbyRoom) => lobbyRoom.lobbyCode)
+            .indexOf(lobbyCode);
     },
 
     // This is the same function as the one above, might give second arg an options object and combine it into one
