@@ -1,11 +1,6 @@
 const { uuid } = require('../helpers');
 const { Lobby, Game } = require('../models');
-const {
-    findSocketIDIndexInLobby,
-    findRoomIDIndexInLobby,
-    parseLobbyRoomPayload,
-    findPlayerIDIndexInLobby,
-} = require('./util');
+const { findSocketIDIndexInLobby, findRoomIDIndexInLobby } = require('./util');
 
 let lobby = [];
 
@@ -212,24 +207,11 @@ module.exports = (lobbyNps, socket) => {
                         playerName,
                     });
 
-                    console.log(
-                        'player number :',
-                        players.length,
-                        ' joined the room'
-                    );
-
-                    console.log(
-                        'as players, sending value :',
-                        lobby[lobbyRoomIndex].players
-                    );
-
                     emitLobbyPlayers(lobbyNps, lobbyCode, {
                         playersAmount,
                         players: lobby[lobbyRoomIndex].players,
                         message: 'A player has joined',
                     });
-
-                    console.log('lobbyRoom modified :', lobby[lobbyRoomIndex]);
 
                     responseCb({
                         status: 200,
@@ -339,137 +321,5 @@ module.exports = (lobbyNps, socket) => {
 
             emitStartGame(lobbyNps, lobbyCode, false);
         }
-    });
-
-    // socket.on('create-game-room', async (playerID, responseCb) => {
-    //     const { found, lobbyIndex, playersIndex } = findPlayerIDIndexInLobby(
-    //         lobby,
-    //         playerID
-    //     );
-
-    //     if (!found) {
-    //         responseCb({
-    //             status: 400,
-    //             message: 'Not found',
-    //             room: null,
-    //         });
-    //     } else {
-    //         const { roomCode, playersAmount, players } = lobby[lobbyIndex];
-
-    //         /** If the selected game players amount does not equal the current players in lobby */
-    //         if (playersAmount !== players.length) {
-    //             responseCb({
-    //                 status: 405,
-    //                 message:
-    //                     'Current players do not satisfy players amount option',
-    //                 room: null,
-    //             });
-    //         } else {
-    //             const game = new Game({
-    //                 gameCode: roomCode,
-    //                 playersAmount,
-    //                 players: players[playersIndex],
-    //             });
-
-    //             await game.save();
-    //             console.log('game created');
-
-    //             responseCb({
-    //                 status: 201,
-    //                 message: 'Game created',
-    //                 game,
-    //             });
-
-    //             lobbyNps.to(roomCode).emit('game-room-created');
-    //         }
-    //     }
-    // });
-
-    // socket.on('join-game-room', async (playerID, responseCb) => {
-    //     console.log('join-game-room :', {
-    //         playerID,
-    //         socketID: socket.id,
-    //     });
-    //     const { found, lobbyIndex, playersIndex } = findPlayerIDIndexInLobby(
-    //         lobby,
-    //         playerID
-    //     );
-    //     if (!found) {
-    //         responseCb({
-    //             status: 400,
-    //             message: 'Lobby room not found',
-    //             room: null,
-    //         });
-    //     } else {
-    //         const { roomCode, players, playersAmount } = lobby[lobbyIndex];
-
-    //         const game = await Game.findOne({ gameCode: roomCode });
-
-    //         if (!game)
-    //             responseCb({
-    //                 status: 400,
-    //                 message: 'Game room not found',
-    //                 room: null,
-    //             });
-    //         else {
-    //             game.players = [
-    //                 ...game.players,
-    //                 /** Is an object */
-    //                 players[playersIndex],
-    //             ];
-
-    //             console.log('updating room :', roomCode, '\nWith values: ', [
-    //                 ...game.players,
-    //                 /** Is an object */
-    //                 players[playersIndex],
-    //             ]);
-    //             await Game.updateOne(
-    //                 { gameCode: roomCode },
-    //                 {
-    //                     players: [
-    //                         ...game.players,
-    //                         /** Is an object */
-    //                         players[playersIndex],
-    //                     ],
-    //                 }
-    //             );
-    //             console.log(
-    //                 'updated game room with values :',
-    //                 players[playersIndex]
-    //             );
-
-    //             responseCb({
-    //                 status: 200,
-    //                 message: 'Players joined',
-    //                 game,
-    //             });
-
-    //             if (game.players.length === playersAmount) {
-    //                 console.log('ready to proceed');
-    //                 lobbyNps.to(roomCode).emit('proceed-to-game');
-    //             }
-    //         }
-    //     }
-    // });
-
-    // socket.on('start-game', async (roomCode) => {
-    //     const game = await Game.findOne({ gameCode: roomCode });
-    //     console.log('game :', game);
-    //     console.log('game players :', game.players);
-
-    //     const roomIDIndex = findRoomIDIndexInLobby(lobby, roomCode);
-
-    //     console.log({ lobbyRoom: lobby[roomIDIndex] });
-
-    //     const { playersAmount } = lobby[roomIDIndex];
-
-    //     if (game && game.players.length === playersAmount) {
-    //         console.log('ready to proceed');
-    //         lobbyNps.to(roomCode).emit('proceed-to-game');
-    //     }
-    // });
-
-    socket.on('log-server-vals', async () => {
-        console.log({ lobby });
     });
 };

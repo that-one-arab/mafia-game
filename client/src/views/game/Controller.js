@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useReducer } from 'react';
+import { useSelector } from 'react-redux';
+import io from 'socket.io-client';
 import { Svg } from '../../assets/svg';
 import { useInterval } from '../../hooks';
+import { initialState, reducer } from './reducer';
 import './style.css';
 
 function RoleAssignment() {
@@ -89,11 +92,59 @@ function AutoSlider() {
     );
 }
 
-export default function Controller() {
+function Controller({ socket }) {
+    const { lobby, gameOptions, myPlayer } = useSelector((state) => state);
+    const { lobbyCode, players } = lobby;
+    const { playersAmount } = gameOptions;
+
+    const [state, dispatch] = useReducer(reducer, initialState);
+    console.log('state.players :', state.players);
+
+    useEffect(() => {
+        socket.emit(
+            'join-game',
+            lobbyCode,
+            myPlayer.playerID,
+            myPlayer.playerName,
+            (res) => {
+                if (res.status !== 200) console.warn(res);
+            }
+        );
+    }, [socket, lobbyCode, myPlayer]);
+
+    useEffect(() => {
+        socket.on('game-players', (res) => {
+            console.log('game-players listened :', res);
+
+            dispatch({ type: 'SET_PLAYERS', payload: res.players });
+        });
+    }, [socket]);
+
     return (
         <div>
             <RoleAssignment />
             <AutoSlider />
         </div>
     );
+}
+
+export default function ControllerWrapper() {
+    const [socket, setSocket] = useState(undefined);
+
+    /** Socket initialization */
+    useEffect(() => {
+        const newSocket = io(`http://localhost:8080/game`, {
+            transports: ['websocket'],
+        });
+        setSocket(newSocket);
+        return () => newSocket.close();
+    }, [setSocket]);
+
+    if (socket)
+        return (
+            <div>
+                <Controller socket={socket} />
+            </div>
+        );
+    else return null;
 }

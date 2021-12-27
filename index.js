@@ -6,6 +6,7 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const routes = require('./src/routes');
 const lobbyHandler = require('./src/events/lobbyHandler');
+const gameHandler = require('./src/events/gameHandler');
 
 const app = express();
 
@@ -60,13 +61,18 @@ const initializeServer = async (port = undefined) => {
         const io = socketIO(server);
 
         const lobbyNps = io.of('/lobby');
+        const gameNps = io.of('/game');
 
         const onLobbyConnection = (socket) => {
-            /** MAYBE give this a 3rd param, which a global cache?  */
             lobbyHandler(lobbyNps, socket);
         };
 
+        const onGameConnection = (socket) => {
+            gameHandler(gameNps, socket);
+        };
+
         lobbyNps.on('connection', onLobbyConnection);
+        gameNps.on('connection', onGameConnection);
     } catch (error) {
         console.error(error);
     }

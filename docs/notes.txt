@@ -1,0 +1,27 @@
+
+All players joined
+Socket connection started
+    SER: socket.on('join-game', (roomCode, playerID, playerName, responseCb) => {
+        // Join players to the same roomcode
+        // If game cache object exists, update game cache object
+        // If player ID exists in game cache object, do nothing
+        // Else create a game cache object
+        // Return game object that also includes players
+    })
+
+    CLT:
+        // if the current players in /game are equal to playersAmount option:
+            socket.emit('verify-game')
+
+    SER: socket.on('verify-game' (roomCode, playerID) => {
+        // Verify the submitter is owner of room
+        // Verify the roomCode to exist in mongodb
+        // Update game cache object
+        // Set game cache object is room verified to true
+        // Emit "assign-roles" event through callback function
+    })
+
+
+    CLT: socket.on('assign-roles', (role, team) => {
+        console.log(role, team)
+    })

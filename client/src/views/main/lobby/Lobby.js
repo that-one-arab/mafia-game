@@ -9,10 +9,6 @@ function Timer({ timer, setTimer }) {
         timer !== 0 && setTimer((prevVal) => prevVal - 1);
     }, 1000);
 
-    // useEffect(() => {
-    //     if (!start) setTimer(10);
-    // }, [start, timer, setTimer]);
-
     return (
         <div>
             <h3>{timer} </h3>
@@ -34,14 +30,14 @@ function Lobby({ socket }) {
     /** Redux main state */
     const { lobbyCode, players } = useSelector((state) => state.lobby);
     const { playersAmount } = useSelector((state) => state.gameOptions);
-    console.log({ lobbyCode, players, myPlayer, playersAmount });
+    // console.log({ lobbyCode, players, myPlayer, playersAmount });
 
     const [timer, setTimer] = useState(10);
     const [startCountdown, setStartCountdown] = useState(false);
 
     useEffect(() => {
         if (myPlayer.isOwner) {
-            console.log('firing create-room');
+            // console.log('firing create-room');
             socket.emit('create-room', lobbyCode, (res) => {
                 if (res.status !== 201) console.warn({ res });
             });
@@ -51,7 +47,7 @@ function Lobby({ socket }) {
     useEffect(() => {
         if (!myPlayer.isOwner) {
             socket.emit('join-room', lobbyCode, myPlayer.playerName, (res) => {
-                console.log('firing join-room');
+                // console.log('firing join-room');
                 if (res.status !== 200) console.warn({ res });
 
                 dispatch({ type: 'SET_PLAYER_ID', payload: res.playerID });
@@ -65,7 +61,7 @@ function Lobby({ socket }) {
 
     useEffect(() => {
         socket.on('lobby-players', (res) => {
-            console.log('listened to lobby-players, res: ', res);
+            // console.log('listened to lobby-players, res: ', res);
             dispatch({ type: 'SET_PLAYERS', payload: res.payload.players });
         });
 
@@ -79,12 +75,12 @@ function Lobby({ socket }) {
 
     useEffect(() => {
         socket.on('start-countdown', () => {
-            console.log('starting countdown...');
+            // console.log('starting countdown...');
             setStartCountdown(true);
         });
 
         socket.on('stop-countdown', () => {
-            console.log('stopped countdown!');
+            // console.log('stopped countdown!');
             setTimer(10);
             setStartCountdown(false);
         });
