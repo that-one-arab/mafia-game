@@ -42,6 +42,124 @@ LENGTHS:
         8 Villagers
  */
 
+/** */
+function shuffle(array) {
+    let currentIndex = array.length;
+    let randomIndex;
+
+    // While there remain elements to shuffle...
+    while (currentIndex !== 0) {
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+
+    return array;
+}
+
+/** */
+function assignTeams(players) {
+    let mafiaTeam = [];
+    let townTeam = [];
+
+    if (players.length <= 5) {
+        mafiaTeam.push(players[0]);
+        townTeam = players.slice(1);
+    } else {
+        const playersCount = players.length;
+
+        if ((playersCount / 3) % 1 === 0) {
+            const mafiaCount = playersCount / 3;
+            const sliceIndex = mafiaCount;
+            mafiaTeam = players.slice(0, sliceIndex);
+
+            townTeam = players.slice(sliceIndex);
+
+            return { mafiaTeam, townTeam };
+        } else {
+            const mafiaCount = playersCount / 3;
+            const sliceIndex = Math.trunc(mafiaCount);
+            mafiaTeam = players.slice(0, sliceIndex);
+
+            townTeam = players.slice(sliceIndex);
+
+            return { mafiaTeam, townTeam };
+        }
+    }
+
+    return { mafiaTeam, townTeam };
+}
+
+/** */
+function assignRoles(teams) {
+    /** */
+    function getMafiaTeamRoles(mafiaTeam) {
+        /**
+         * Populate role sequence array
+         * Sort array so that priority roles are at the end of array
+         * Splice role sequence array
+         * Shuffle array
+         */
+        let mafPlayers = [];
+        let rolesSequence = [];
+
+        const mafiaRolesSortedByPriority = mafiaRoles.sort((a, b) => b.priority - a.priority);
+
+        /**  */
+        function populateRoleSequence() {
+            mafiaRolesSortedByPriority.forEach((role, i) => {
+                if (role.unique) {
+                    if (rolesSequence.map((seq) => seq.role).includes(role.name) === false) {
+                        rolesSequence.push({
+                            role: role.name,
+                            description: role.description,
+                        });
+                    }
+                } else {
+                    rolesSequence.push({
+                        role: role.name,
+                        description: role.description,
+                    });
+                }
+            });
+
+            if (rolesSequence.length < mafTeam.length * 4) populateRoleSequence();
+        }
+
+        /** */
+        function sortPriorityRoles() {
+            return rolesSequence.sort((a, b) => {
+                if (a.role === 'Godfather') return 1;
+                else return -1;
+            });
+        }
+
+        /** */
+        function spliceSeqLengthToPlayersLength() {
+            const start = 0;
+            console.log({ start });
+            const deleteCount = rolesSequence.length - mafTeam.length;
+            console.log({ deleteCount });
+            rolesSequence.splice(0, deleteCount);
+            return rolesSequence;
+        }
+
+        populateRoleSequence();
+
+        rolesSequence = sortPriorityRoles();
+
+        rolesSequence = spliceSeqLengthToPlayersLength();
+
+        return { rolesSequence };
+    }
+
+    const mafiaTeam = getMafiaTeamRoles(teams.mafiaTeam);
+    return { mafiaTeam };
+}
+
 const TOWN = 'TOWN';
 const MAFIA = 'MAFIA';
 
@@ -49,8 +167,7 @@ const townRoles = [
     {
         name: 'Doctor',
         team: TOWN,
-        description:
-            'May protect one person from being killed each night. May not protect himself',
+        description: 'May protect one person from being killed each night. May not protect himself',
     },
     {
         name: 'Detective',
@@ -71,14 +188,12 @@ const townRoles = [
     {
         name: 'Bodyguard',
         team: TOWN,
-        description:
-            'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
+        description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
     },
     {
         name: 'Copper',
         team: TOWN,
-        description:
-            'May choose one player to block them from using their ability',
+        description: 'May choose one player to block them from using their ability',
     },
 ];
 
@@ -86,8 +201,7 @@ const mafiaRoles = [
     {
         name: 'Mafia',
         team: MAFIA,
-        description:
-            'Regular mafia-aligned role. May kill one person each night',
+        description: 'Regular mafia-aligned role. May kill one person each night',
         priority: 7,
         unique: false,
     },
@@ -108,8 +222,7 @@ const mafiaRoles = [
     {
         name: 'Escort',
         team: MAFIA,
-        description:
-            'May choose one player to block them from using their ability',
+        description: 'May choose one player to block them from using their ability',
         priority: 3,
         unique: false,
     },
@@ -117,159 +230,31 @@ const mafiaRoles = [
 
 let players = [
     {
-        name: 'Sam',
+        playerName: 'Sam',
     },
     {
-        name: 'Mike',
+        playerName: 'Mike',
     },
     {
-        name: 'Alex',
+        playerName: 'Alex',
     },
     {
-        name: 'Katy',
+        playerName: 'Katy',
     },
     {
-        name: 'Romeo',
+        playerName: 'Romeo',
+    },
+    {
+        playerName: 'Julliete',
+    },
+    {
+        playerName: 'Sandy',
     },
 ];
-
-/** */
-function shuffle(array) {
-    let currentIndex = array.length;
-    let randomIndex;
-
-    // While there remain elements to shuffle...
-    while (currentIndex !== 0) {
-        // Pick a remaining element...
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-
-        // And swap it with the current element.
-        [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex],
-            array[currentIndex],
-        ];
-    }
-
-    return array;
-}
 
 players = shuffle(players);
 
-const assignTeams = (players) => {
-    let mafTeam = [];
-    let villTeam = [];
-
-    if (players.length <= 5) {
-        mafTeam.push(players[0]);
-        villTeam = players.slice(1);
-    } else {
-        const playersCount = players.length;
-
-        if ((playersCount / 3) % 1 === 0) {
-            const mafiaCount = playersCount / 3;
-            const sliceIndex = mafiaCount;
-            mafTeam = players.slice(0, sliceIndex);
-
-            villTeam = players.slice(sliceIndex);
-
-            return { mafTeam, villTeam };
-        } else {
-            const mafiaCount = playersCount / 3;
-            const sliceIndex = Math.trunc(mafiaCount);
-            mafTeam = players.slice(0, mafiaCount);
-
-            villTeam = players.slice(mafiaCount);
-
-            return { mafTeam, villTeam };
-        }
-    }
-
-    return { mafTeam, villTeam };
-};
-
 const teams = assignTeams(players);
-// console.log(assignTeams(players));
 
-/** */
-function assignRoles({ mafTeam }) {
-    console.log({ mafTeam });
-    let mafPlayers = [];
-    let rolesSequence = [];
-
-    const mafiaRolesSortedByPriority = mafiaRoles.sort(
-        (a, b) => b.priority - a.priority
-    );
-
-    /**  */
-    function populateRoleSequence() {
-        mafiaRolesSortedByPriority.forEach((role, i) => {
-            if (role.unique) {
-                console.log(
-                    'role :',
-                    role.name,
-                    ' at index: ',
-                    i,
-                    ' is unique.'
-                );
-                if (
-                    rolesSequence.map((seq) => seq.role).includes(role.name) ===
-                    false
-                ) {
-                    rolesSequence.push({
-                        role: role.name,
-                        description: role.description,
-                    });
-                }
-            } else {
-                rolesSequence.push({
-                    role: role.name,
-                    description: role.description,
-                });
-            }
-        });
-
-        if (rolesSequence.length < mafTeam.length * 4) populateRoleSequence();
-    }
-
-    populateRoleSequence();
-
-    console.log('rolesSequence length before: ', rolesSequence.length);
-    const start = 0;
-    console.log({ start });
-    const deleteCount = rolesSequence.length - mafTeam.length;
-    console.log({ deleteCount });
-    rolesSequence.splice(0, deleteCount);
-    console.log('rolesSequence after: ', rolesSequence.length);
-
-    return { mafPlayers, rolesSequence };
-}
-
-const mafTeam = [
-    {
-        name: 'Mike',
-    },
-    {
-        name: 'Alex',
-    },
-    {
-        name: 'Katy',
-    },
-    {
-        name: 'Romeo',
-    },
-    {
-        name: 'Julliete',
-    },
-    {
-        name: 'Sofia',
-    },
-    {
-        name: 'Sally',
-    },
-    {
-        name: 'Mark',
-    },
-];
-
-console.log(assignRoles({ mafTeam }));
+const roles = assignRoles(teams);
+console.log('roles :', roles);
