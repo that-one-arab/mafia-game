@@ -96,68 +96,89 @@ function assignTeams(players) {
 /** */
 function assignRoles(teams) {
     /** */
-    function getMafiaTeamRoles(mafiaTeam) {
-        /**
-         * Populate role sequence array
-         * Sort array so that priority roles are at the end of array
-         * Splice role sequence array
-         * Shuffle arrays
-         */
-        let mafPlayers = [];
-        let rolesSequence = [];
+    function sortPriorityLast(arr) {
+        return arr.sort((a, b) => {
+            if (a.priority === 10) return 1;
+            else return -1;
+        });
+    }
 
-        const mafiaRolesSortedByPriority = mafiaRoles.sort((a, b) => b.priority - a.priority);
+    /** */
+    function spliceSeqLengthToPlayersLength(arr, team) {
+        const deleteCount = arr.length - team.length;
+        arr.splice(0, deleteCount);
+        return arr;
+    }
 
-        /**  */
-        function populateRoleSequence() {
-            mafiaRolesSortedByPriority.forEach((role, i) => {
+    /**  */
+    function populateRoleSequence(team, teamRoles) {
+        const rolesSequence = [];
+
+        /** */
+        function sortPriorityFirst(arr) {
+            return arr.sort((a, b) => b.priority - a.priority);
+        }
+
+        const sortedByPriority = sortPriorityFirst(teamRoles);
+
+        while (rolesSequence.length < team.length * 10) {
+            sortedByPriority.forEach((role, i) => {
                 if (role.unique) {
                     if (rolesSequence.map((seq) => seq.role).includes(role.name) === false) {
                         rolesSequence.push({
                             role: role.name,
                             description: role.description,
+                            priority: role.priority,
                         });
                     }
                 } else {
                     rolesSequence.push({
                         role: role.name,
                         description: role.description,
+                        priority: role.priority,
                     });
                 }
             });
-
-            if (rolesSequence.length < mafTeam.length * 4) populateRoleSequence();
         }
 
-        /** */
-        function sortPriorityRoles() {
-            return rolesSequence.sort((a, b) => {
-                if (a.role === 'Godfather') return 1;
-                else return -1;
-            });
-        }
+        return rolesSequence;
+    }
 
-        /** */
-        function spliceSeqLengthToPlayersLength() {
-            const start = 0;
-            console.log({ start });
-            const deleteCount = rolesSequence.length - mafTeam.length;
-            console.log({ deleteCount });
-            rolesSequence.splice(0, deleteCount);
-            return rolesSequence;
-        }
+    /** */
+    function getMafiaTeamRoles(mafiaTeam) {
+        let rolesSequence = populateRoleSequence(mafiaTeam, mafiaRoles);
 
-        populateRoleSequence();
+        rolesSequence = shuffle(rolesSequence);
 
-        rolesSequence = sortPriorityRoles();
+        rolesSequence = sortPriorityLast(rolesSequence);
 
-        rolesSequence = spliceSeqLengthToPlayersLength();
+        rolesSequence = spliceSeqLengthToPlayersLength(rolesSequence, mafiaTeam);
 
-        return { rolesSequence };
+        return mafiaTeam.map((player, i) => ({
+            playerName: player.playerName,
+            playerRole: rolesSequence[i].role,
+        }));
+    }
+
+    /** */
+    function getTownTeamRoles(townTeam) {
+        let rolesSequence = populateRoleSequence(townTeam, townRoles);
+
+        rolesSequence = shuffle(rolesSequence);
+
+        rolesSequence = sortPriorityLast(rolesSequence);
+
+        rolesSequence = spliceSeqLengthToPlayersLength(rolesSequence, townTeam);
+
+        return townTeam.map((player, i) => ({
+            playerName: player.playerName,
+            playerRole: rolesSequence[i].role,
+        }));
     }
 
     const mafiaTeam = getMafiaTeamRoles(teams.mafiaTeam);
-    return { mafiaTeam };
+    const townTeam = getTownTeamRoles(teams.townTeam);
+    return { mafiaTeam, townTeam };
 }
 
 const TOWN = 'TOWN';
@@ -249,6 +270,60 @@ let players = [
     },
     {
         playerName: 'Sandy',
+    },
+    {
+        playerName: 'Will',
+    },
+    {
+        playerName: 'Sofia',
+    },
+    {
+        playerName: 'Rami',
+    },
+    {
+        playerName: 'Ahmed',
+    },
+    {
+        playerName: 'Michael',
+    },
+    {
+        playerName: 'Lewis',
+    },
+    {
+        playerName: 'Antonio',
+    },
+    {
+        playerName: 'Roger',
+    },
+    {
+        playerName: 'Harry',
+    },
+    {
+        playerName: 'Gilbert',
+    },
+    {
+        playerName: 'Asshole',
+    },
+    {
+        playerName: 'Felix',
+    },
+    {
+        playerName: 'Historia',
+    },
+    {
+        playerName: 'Ali',
+    },
+    {
+        playerName: 'Amina',
+    },
+    {
+        playerName: 'Adem',
+    },
+    {
+        playerName: 'Sudad',
+    },
+    {
+        playerName: 'Johnson',
     },
 ];
 
