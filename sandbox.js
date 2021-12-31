@@ -101,7 +101,7 @@ function assignRoles(teams) {
          * Populate role sequence array
          * Sort array so that priority roles are at the end of array
          * Splice role sequence array
-         * Shuffle array
+         * Shuffle arrays
          */
         let mafPlayers = [];
         let rolesSequence = [];
