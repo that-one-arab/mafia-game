@@ -66,10 +66,7 @@ function Lobby({ socket }) {
         });
 
         socket.on('room-destroyed', (res) => {
-            if (res.reason === 'Lobby room owner has exited')
-                history.push(
-                    '/join-game/enter-code?joinStatus=lobby-owner-exited'
-                );
+            if (res.reason === 'Lobby room owner has exited') history.push('/join-game/enter-code?joinStatus=lobby-owner-exited');
         });
     }, [socket, dispatch, history]);
 
@@ -87,11 +84,7 @@ function Lobby({ socket }) {
     }, [socket, history]);
 
     useEffect(() => {
-        if (
-            myPlayer.isOwner &&
-            players.length === playersAmount &&
-            timer === 0
-        ) {
+        if (myPlayer.isOwner && players.length === playersAmount && timer === 0) {
             socket.emit('initialize-game', lobbyCode);
         }
     }, [socket, myPlayer.isOwner, players, playersAmount, timer, lobbyCode]);
@@ -104,15 +97,11 @@ function Lobby({ socket }) {
 
     return (
         <div>
-            <Countdown
-                start={startCountdown}
-                timer={timer}
-                setTimer={setTimer}
-            />
+            <Countdown start={startCountdown} timer={timer} setTimer={setTimer} />
             <div>
                 <button
                     onClick={() => {
-                        socket.emit('log-server-vals');
+                        socket.emit('log-vals');
                     }}
                 >
                     Log server vals
@@ -138,9 +127,7 @@ function Lobby({ socket }) {
                               <tr
                                   key={p.playerID}
                                   style={{
-                                      backgroundColor: p.isOwner
-                                          ? 'grey'
-                                          : 'white',
+                                      backgroundColor: p.isOwner ? 'grey' : 'white',
                                   }}
                               >
                                   <th scope='col'>#{i + 1}</th>

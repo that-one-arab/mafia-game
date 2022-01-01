@@ -24,8 +24,6 @@ module.exports = {
     },
 
     findRoomIDIndexInLobby: (lobbyArr, lobbyCode) => {
-        return lobbyArr
-            .map((lobbyRoom) => lobbyRoom.lobbyCode)
-            .indexOf(lobbyCode);
+        return lobbyArr.map((lobbyRoom) => lobbyRoom.lobbyCode).indexOf(lobbyCode);
     },
 };

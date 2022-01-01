@@ -1,28 +1,24 @@
-/** */
-function returnResult(outputLength = 20) {
-    const arr = [
-        {
-            name: 'Element 1',
-            frequency: 7,
-        },
-        {
-            name: 'Element 2',
-            frequency: 10,
-        },
-        {
-            name: 'Element 3',
-            frequency: 6,
-        },
-    ];
+const arr2 = [
+    { playerID: 'PLR-739f61d6-9810-490c-8ee1-2e68dc5ddcd2', playerName: 'a1', isOwner: true },
+    { playerID: 'PLR-07bbc1b6-21e0-47b4-971c-389b33405863', playerName: 'a3', isOwner: false },
+    { playerID: 'PLR-3ad9fcf8-5eab-4abc-9e81-779a7edaf30a', playerName: 'a2', isOwner: false },
+    { playerID: 'PLR-b7d98ccd-d71f-4049-bbf2-abb17b273446', playerName: 'a4', isOwner: false },
+];
 
-    // Generate a roles sequence, that has elements equal to or bigger than players length times 10
-    // Randomly Sort roles seq
-    //
+const arr = ['a1', 'a3', 'a2', 'a4'];
 
-    // Take the output length and multiply it by 10
-    // Randomly Sort the result
-    // Loop over the result, find how frequent a role is present
-    // Compare it to the actual roles array
-}
+console.log(
+    arr2.sort(function (a, b) {
+        const nameA = a.playerName.toUpperCase();
+        const nameB = b.playerName.toUpperCase();
+        if (nameA < nameB) {
+            return -1;
+        }
+        if (nameA > nameB) {
+            return 1;
+        }
 
-returnResult(40);
+        // names must be equal
+        return 0;
+    })
+);

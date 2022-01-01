@@ -17,29 +17,35 @@ app.get('/lobby', async (req, res) => {
 });
 
 app.post('/lobby', async (req, res) => {
-    // console.log({ body: req.body });
-    const { playersAmount, playerName } = req.body;
-    // console.log({ playersAmount, playerName });
+    try {
+        // console.log({ body: req.body });
+        const { playersAmount, playerName } = req.body;
+        // console.log({ playersAmount, playerName });
 
-    await validatePlayersAmount(playersAmount);
+        await validatePlayersAmount(playersAmount);
 
-    const playerID = uuid('PLR-');
-    const lobbyCode = uuid('', '', { idFor: 'ROOM_CODE' });
-    // console.log({ lobbyCode, playerID });
+        const playerID = uuid('PLR-');
+        const lobbyCode = uuid('', '', { idFor: 'ROOM_CODE' });
+        // console.log({ lobbyCode, playerID });
 
-    const lobby = new Lobby({
-        lobbyCode,
-        playersAmount,
-        owner: {
-            playerID,
-            playerName,
-        },
-        creationDate: new Date(),
-    });
-    // console.log({ lobby });
+        const lobby = new Lobby({
+            lobbyCode,
+            playersAmount,
+            owner: {
+                playerID,
+                playerName,
+            },
+            creationDate: new Date(),
+        });
+        // console.log({ lobby });
 
-    await lobby.save();
-    // console.log('saved the lobby');
+        await lobby.save();
+        // console.log('saved the lobby');
 
-    return res.status(201).json({ lobbyCode, playerID });
+        return res.status(201).json({ lobbyCode, playerID });
+    } catch (error) {
+        if (error.message.includes('NOT_ALLOWED_ERR')) return res.status(405).json(error.message);
+
+        return res.status(500).json('Server error');
+    }
 });

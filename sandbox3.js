@@ -1,35 +1,56 @@
-const roles = [
-    { frequency: 2, name: 'Banana' },
-    { frequency: 9, name: 'Apple' },
-    { frequency: 0.1, name: 'Orange' },
-];
+var isEqual = function (value, other) {
+    // Get the value type
+    var type = Object.prototype.toString.call(value);
 
-/** */
-function generateRoleSequence(roles, length) {
-    const results = [];
-    let sum = 0;
-    for (const elem of roles) sum += elem.frequency;
+    // If the two objects are not the same type, return false
+    if (type !== Object.prototype.toString.call(other)) return false;
 
-    console.log('sum :', sum);
+    // If items are not an object or array, return false
+    if (['[object Array]', '[object Object]'].indexOf(type) < 0) return false;
 
-    while (results.length < length) {
-        let rand = Math.random() * sum;
-        console.log('rand :', rand);
+    // Compare the length of the length of the two items
+    var valueLen = type === '[object Array]' ? value.length : Object.keys(value).length;
+    var otherLen = type === '[object Array]' ? other.length : Object.keys(other).length;
+    if (valueLen !== otherLen) return false;
 
-        for (const elem of roles) {
-            console.log('    looping through item :', elem);
-            if (rand < elem.frequency) {
-                console.log('    rand is smaller than elem.frequency :', elem.frequency);
-                console.log('    pushing element :', elem);
-                results.push(elem);
-                break;
+    // Compare two items
+    var compare = function (item1, item2) {
+        // Get the object type
+        var itemType = Object.prototype.toString.call(item1);
+
+        // If an object or array, compare recursively
+        if (['[object Array]', '[object Object]'].indexOf(itemType) >= 0) {
+            if (!isEqual(item1, item2)) return false;
+        }
+
+        // Otherwise, do a simple comparison
+        else {
+            // If the two items are not the same type, return false
+            if (itemType !== Object.prototype.toString.call(item2)) return false;
+
+            // Else if it's a function, convert to a string and compare
+            // Otherwise, just compare
+            if (itemType === '[object Function]') {
+                if (item1.toString() !== item2.toString()) return false;
+            } else {
+                if (item1 !== item2) return false;
             }
-            console.log('    rand:', rand, ' - elem.frequency: ', elem.frequency, ' = ', rand - elem.frequency);
-            rand -= elem.frequency;
+        }
+    };
+
+    // Compare properties
+    if (type === '[object Array]') {
+        for (var i = 0; i < valueLen; i++) {
+            if (compare(value[i], other[i]) === false) return false;
+        }
+    } else {
+        for (var key in value) {
+            if (value.hasOwnProperty(key)) {
+                if (compare(value[key], other[key]) === false) return false;
+            }
         }
     }
 
-    return results;
-}
-
-console.log(generateRoleSequence(roles, 20));
+    // If nothing failed, return true
+    return true;
+};

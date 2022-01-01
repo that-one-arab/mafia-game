@@ -1,4 +1,5 @@
 const { Game } = require('../models');
+const { isEqual, assignPlayers } = require('./gameHelper');
 // const { game } = require('./gameConfig');
 
 const game = [
@@ -14,6 +15,7 @@ const game = [
                 playerRole: '',
                 playerTeam: '',
                 playerAlive: true,
+                playerDisconnected: false,
             },
         ],
         gameConfig: {
@@ -103,6 +105,7 @@ const addPlayer = (gameCode, socketID, playerID, playerName) => {
             playerRole: '',
             playerTeam: '',
             playerAlive: true,
+            playerDisconnected: false,
         },
     ];
 };
@@ -120,6 +123,7 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
                 playerRole: '',
                 playerTeam: '',
                 playerAlive: true,
+                playerDisconnected: false,
             },
         ],
         gameConfig: {
@@ -134,11 +138,74 @@ const killPlayer = (roomIndex, playerIndex) => {
     return game[roomIndex].players[playerIndex];
 };
 
+const disconnectPlayer = (roomIndex, playerIndex) => {
+    game[roomIndex].players[playerIndex].playerDisconnected = true;
+    return game[roomIndex].players[playerIndex];
+};
+
+const arePlayersVerified = (dbPlayers, cachePlayers) => {
+    const dataBasePlayers = dbPlayers.map((p) => ({ playerID: p.playerID, playerName: p.playerName, isOwner: p.isOwner }));
+    const expectedPlayers = cachePlayers.map((p) => ({ playerID: p.playerID, playerName: p.playerName, isOwner: p.isOwner }));
+    dataBasePlayers.sort(function (a, b) {
+        const idA = a.playerID.toUpperCase();
+        const idB = b.playerID.toUpperCase();
+        if (idA < idB) {
+            return -1;
+        }
+        if (idA > idB) {
+            return 1;
+        }
+
+        // names must be equal
+        return 0;
+    });
+    expectedPlayers.sort(function (a, b) {
+        const idA = a.playerID.toUpperCase();
+        const idB = b.playerID.toUpperCase();
+        if (idA < idB) {
+            return -1;
+        }
+        if (idA > idB) {
+            return 1;
+        }
+
+        // names must be equal
+        return 0;
+    });
+    if (isEqual(dataBasePlayers, expectedPlayers)) return true;
+    return false;
+};
+
 /**
- * EVENTS:
- * join-game
- * game-players
+ * @summary handles reconnecting a possibly disconnected player
+ * @param {number} roomIndex the index of the game room
+ * @param {number} playerIndex the index of the players array
+ * @param {string} playerID
+ * @param {string} socketID
  */
+function reconnectPlayerHandler(roomIndex, playerIndex, socketID) {
+    /** Set disconnected to false */
+    game[roomIndex].players[playerIndex].playerDisconnected = false;
+    /** Update socket ID */
+    game[roomIndex].players[playerIndex].socketID = socketID;
+}
+
+/** */
+function updateGameRoomOwner(roomIndex, playerID) {
+    const { found, playerIndex } = findPlayerIDIndexInRooms(roomIndex, playerID);
+    if (found) {
+        game[roomIndex].players[playerIndex].isOwner = true;
+    }
+}
+
+/** */
+function assignRolesHandler(io, players) {
+    console.log('assignRolesHandler...');
+    players.forEach((player) => {
+        console.log('emitted to socketID :', player.socketID);
+        io.to(player.socketID).emit('assigned-role', player);
+    });
+}
 
 const safeParsePlayers = (players) => {
     return players.map((player) => ({
@@ -168,7 +235,7 @@ module.exports = (gameNps, socket) => {
                 console.log('room Index exists, value :', gameRoomIndex);
 
                 console.log('checking if player already exists in room...');
-                const { found: playerExists } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
+                const { found: playerExists, playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
 
                 if (!playerExists) {
                     console.log('player does not exists');
@@ -179,6 +246,16 @@ module.exports = (gameNps, socket) => {
                         playerName,
                     });
                     addPlayer(gameCode, socket.id, playerID, playerName);
+                } else {
+                    console.log('player DOES exist!');
+                    const player = game[gameRoomIndex].players[playerIndex];
+                    console.log('the player who exists :', player);
+
+                    console.log('checking if they have disconnected...');
+                    if (player.playerDisconnected) {
+                        console.log('the player has disconnected. Reconnecting...');
+                        reconnectPlayerHandler(gameRoomIndex, playerIndex, socket.id);
+                    }
                 }
             } else {
                 console.log('room index does not exist, proceeding to create a new room with values: ', {
@@ -239,8 +316,9 @@ module.exports = (gameNps, socket) => {
                     '. This could mean the socket did not join properly in the first place'
                 );
 
-            killPlayer(gameRoomIndex, playerIndex);
-            console.log('killed the player');
+            disconnectPlayer(gameRoomIndex, playerIndex);
+
+            console.log('disconnected the player');
 
             const players = game[gameRoomIndex].players;
             console.log('new players array :', players);
@@ -249,13 +327,52 @@ module.exports = (gameNps, socket) => {
             const { playerID } = game[gameRoomIndex].players[playerIndex];
 
             gameNps.to(gameCode).emit('game-players', {
-                message: 'Player ID' + playerID + ' has dies because they left the game',
+                message: 'Player ID' + playerID + ' has disconnected',
                 players: safeParsePlayers(players),
             });
 
             console.groupEnd('leave-room');
         } catch (error) {
             console.error(error);
+        }
+    });
+
+    socket.on('verify-room', async (gameCode, playerID) => {
+        const dbGame = await Game.findOne({ gameCode });
+        if (dbGame) {
+            let ownerFound = false;
+            dbGame.players.forEach((player) => {
+                if (player.playerID === playerID) ownerFound = true;
+            });
+
+            if (ownerFound) {
+                const gameRoomIndex = indexOfGameRoom(gameCode);
+
+                if (gameRoomIndex !== -1) {
+                    console.log('setting game owner to true...');
+                    updateGameRoomOwner(gameRoomIndex, playerID);
+
+                    const { playersAmount, players: dbPlayers } = dbGame;
+                    console.log('dbGame props:', { playersAmount, dbPlayers });
+
+                    const { players: cachePlayers } = game[gameRoomIndex];
+                    console.log('game cache props:', { cachePlayers });
+
+                    console.log('verifying players...');
+                    if (arePlayersVerified(dbPlayers, cachePlayers)) {
+                        console.log('players verifications passed');
+                        const assignedPlayers = assignPlayers(cachePlayers);
+                        console.log('assignedPlayers :', assignedPlayers);
+
+                        assignRolesHandler(gameNps, assignedPlayers);
+                    } else {
+                        console.warn('VERIFICATIONS DID NOT PASS!!');
+                        /** This code block would run if one or more players who have joined the game
+                         * do not exist in the game object fetched from MongoDB. Meaning an unauthorized
+                         * player has joined */
+                    }
+                }
+            }
         }
     });
 };

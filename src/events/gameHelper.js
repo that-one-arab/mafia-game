@@ -1,4 +1,107 @@
 /** */
+const isEqual = function (value, other) {
+    // Get the value type
+    const type = Object.prototype.toString.call(value);
+
+    // If the two objects are not the same type, return false
+    if (type !== Object.prototype.toString.call(other)) {
+        console.log('err 1');
+        return false;
+    }
+
+    // If items are not an object or array, return false
+    if (['[object Array]', '[object Object]'].indexOf(type) < 0) {
+        console.log('err 2');
+        return false;
+    }
+
+    // Compare the length of the length of the two items
+    const valueLen = type === '[object Array]' ? value.length : Object.keys(value).length;
+    const otherLen = type === '[object Array]' ? other.length : Object.keys(other).length;
+    if (valueLen !== otherLen) {
+        console.log('err 3');
+        return false;
+    }
+
+    // Compare two items
+    const compare = function (item1, item2) {
+        // Get the object type
+        const itemType = Object.prototype.toString.call(item1);
+
+        // If an object or array, compare recursively
+        if (['[object Array]', '[object Object]'].indexOf(itemType) >= 0) {
+            if (!isEqual(item1, item2)) {
+                console.log('err 4');
+                return false;
+            }
+        }
+
+        // Otherwise, do a simple comparison
+        else {
+            // If the two items are not the same type, return false
+            if (itemType !== Object.prototype.toString.call(item2)) {
+                console.log('err 5');
+                return false;
+            }
+
+            // Else if it's a function, convert to a string and compare
+            // Otherwise, just compare
+            if (itemType === '[object Function]') {
+                if (item1.toString() !== item2.toString()) {
+                    console.log('err 6');
+                    return false;
+                }
+            } else {
+                if (item1 !== item2) {
+                    console.log('err 7');
+                    return false;
+                }
+            }
+        }
+    };
+
+    // Compare properties
+    if (type === '[object Array]') {
+        for (let i = 0; i < valueLen; i++) {
+            if (compare(value[i], other[i]) === false) {
+                console.log('err 8');
+                return false;
+            }
+        }
+    } else {
+        for (const key in value) {
+            if (value.hasOwnProperty(key)) {
+                if (compare(value[key], other[key]) === false) {
+                    console.log('err 9');
+                    return false;
+                }
+            }
+        }
+    }
+
+    // If nothing failed, return true
+    return true;
+};
+
+/** */
+function shuffle(array) {
+    let currentIndex = array.length;
+    let randomIndex;
+
+    // While there remain elements to shuffle...
+    while (currentIndex !== 0) {
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+
+    return array;
+}
+
+/** */
 function shuffle(array) {
     let currentIndex = array.length;
     let randomIndex;
@@ -33,16 +136,12 @@ function assignTeams(players) {
             mafiaTeam = players.slice(0, sliceIndex);
 
             townTeam = players.slice(sliceIndex);
-
-            return { mafiaTeam, townTeam };
         } else {
             const mafiaCount = playersCount / 3;
             const sliceIndex = Math.trunc(mafiaCount);
             mafiaTeam = players.slice(0, sliceIndex);
 
             townTeam = players.slice(sliceIndex);
-
-            return { mafiaTeam, townTeam };
         }
     }
 
@@ -92,12 +191,23 @@ function assignRoles(teams) {
             }
         });
 
+        /** Sanity check */
         selectedRoles = res.map((role) => role.name);
 
         for (let i = 0; i < roles.length; i++) {
             if (roles[i].required && !selectedRoles.includes(roles[i].name)) {
                 console.error('seq: ', seq, ' did not include the role: ', roles[i].name);
-                throw new Error('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+
+                if (res.length === 1) {
+                    /** A special condition where if it's a 4/5 players game, there is only one mafia, and that mafia role needs to be the godfather */
+                    res.splice(
+                        res.findIndex((role) => role.name === 'Mafia'),
+                        1,
+                        roles.find((role) => role.name === 'Godfather')
+                    );
+
+                    console.log('replaced Mafia with Godfather');
+                }
             }
         }
 
@@ -111,7 +221,7 @@ function assignRoles(teams) {
         rolesSequence = verifyRequiredRoles(rolesSequence, mafiaRoles);
 
         return mafiaTeam.map((player, i) => ({
-            playerName: player.playerName,
+            ...player,
             playerRole: rolesSequence[i].name,
             playerTeam: rolesSequence[i].team,
         }));
@@ -124,7 +234,7 @@ function assignRoles(teams) {
         rolesSequence = verifyRequiredRoles(rolesSequence, townRoles);
 
         return townTeam.map((player, i) => ({
-            playerName: player.playerName,
+            ...player,
             playerRole: rolesSequence[i].name,
             playerTeam: rolesSequence[i].team,
         }));
@@ -225,118 +335,16 @@ const mafiaRoles = [
     },
 ];
 
-let players = [
-    {
-        playerName: 'Sam',
-    },
-    {
-        playerName: 'Mike',
-    },
-    {
-        playerName: 'Alex',
-    },
-    {
-        playerName: 'Katy',
-    },
-    {
-        playerName: 'Romeo',
-    },
-    {
-        playerName: 'Julliete',
-    },
-    {
-        playerName: 'Sandy',
-    },
-    {
-        playerName: 'Will',
-    },
-    {
-        playerName: 'Sofia',
-    },
-    {
-        playerName: 'Rami',
-    },
-    {
-        playerName: 'Ahmed',
-    },
-    {
-        playerName: 'Michael',
-    },
-    {
-        playerName: 'Lewis',
-    },
-    {
-        playerName: 'Antonio',
-    },
-    {
-        playerName: 'Roger',
-    },
-    {
-        playerName: 'Harry',
-    },
-    {
-        playerName: 'Gilbert',
-    },
-    {
-        playerName: 'Asshole',
-    },
-    {
-        playerName: 'Felix',
-    },
-    {
-        playerName: 'Historia',
-    },
-    {
-        playerName: 'Ali',
-    },
-    {
-        playerName: 'Amina',
-    },
-    {
-        playerName: 'Adem',
-    },
-    {
-        playerName: 'Sudad',
-    },
-    {
-        playerName: 'Johnson',
-    },
-];
+const assignPlayers = (players) => {
+    const shuffledPlayers = shuffle(players);
 
-players = shuffle(players);
+    const teams = assignTeams(shuffledPlayers);
 
-const teams = assignTeams(players);
-
-const roles = assignRoles(teams);
-console.log('roles :', roles);
-
-/** */
-function roleStats(roles) {
-    const mafiaRoleCount = [];
-    const townRoleCount = [];
+    const roles = assignRoles(teams);
 
     const { mafiaTeam, townTeam } = roles;
-    townTeam.forEach((player) => {
-        if (townRoleCount.length && townRoleCount.map((obj) => obj.role).includes(player.playerRole)) {
-            townRoleCount[townRoleCount.findIndex((obj) => obj.role === player.playerRole)].count++;
-        } else {
-            townRoleCount.push({ role: player.playerRole, count: 1 });
-        }
-    });
 
-    mafiaTeam.forEach((player) => {
-        if (mafiaRoleCount.length && mafiaRoleCount.map((obj) => obj.role).includes(player.playerRole)) {
-            mafiaRoleCount[mafiaRoleCount.findIndex((obj) => obj.role === player.playerRole)].count++;
-        } else {
-            mafiaRoleCount.push({ role: player.playerRole, count: 1 });
-        }
-    });
+    return [...mafiaTeam, ...townTeam];
+};
 
-    mafiaRoleCount.sort((a, b) => b.count - a.count);
-
-    townRoleCount.sort((a, b) => b.count - a.count);
-
-    return { townRoleCount, mafiaRoleCount };
-}
-
-console.log(roleStats(roles));
+module.exports = { isEqual, assignPlayers };

@@ -6,6 +6,7 @@ const initialState = {
         playerID: '',
         socketID: '',
         isOwner: false,
+        isConnected: false,
     },
     gameOptions: {
         playersAmount: 0,
@@ -73,21 +74,30 @@ const reducer = (state = initialState, action) => {
                 },
             };
 
-        // case 'SET_ROOM_VERIFIED':
-        //     return {
-        //         ...state,
-        //         game: {
-        //             ...state.game,
-        //             isRoomVerified: true,
-        //         },
-        //     };
-
         case 'SET_PLAYERS':
             return {
                 ...state,
                 lobby: {
                     ...state.lobby,
                     players: action.payload,
+                },
+            };
+
+        case 'SET_CONNECTED_TO_TRUE':
+            return {
+                ...state,
+                myPlayer: {
+                    ...state.myPlayer,
+                    isConnected: true,
+                },
+            };
+
+        case 'SET_CONNECTED_TO_FALSE':
+            return {
+                ...state,
+                myPlayer: {
+                    ...state.myPlayer,
+                    isConnected: false,
                 },
             };
 

@@ -52,11 +52,7 @@ const insertNewLobbyRoom = (lobbyCode, playersAmount, players) => {
  * @param {class instance} io the io instance
  * @param {string} lobbyCode the socket room ID
  */
-const emitLobbyPlayers = (
-    io,
-    lobbyCode,
-    { playersAmount, players, message }
-) => {
+const emitLobbyPlayers = (io, lobbyCode, { playersAmount, players, message }) => {
     io.to(lobbyCode).emit('lobby-players', {
         message,
         payload: {
@@ -67,10 +63,7 @@ const emitLobbyPlayers = (
     });
 };
 
-const joinPlayerToLobbyRoom = (
-    roomIndex,
-    { socketID, playerID, playerName }
-) => {
+const joinPlayerToLobbyRoom = (roomIndex, { socketID, playerID, playerName }) => {
     lobby[roomIndex].players = [
         ...lobby[roomIndex].players,
         {
@@ -87,12 +80,17 @@ const removePlayerFromLobbyRoom = (lobbyRoomIndex, playerIndex) => {
 };
 
 const destroyLobbyRoom = async (lobbyRoomIndex) => {
+    console.log('deleting from MangoDB');
     /** Destroy the room from DB */
-    await Lobby.deleteOne({
+    const { deletedCount } = await Lobby.deleteOne({
         lobbyCode: lobby[lobbyRoomIndex].lobbyCode,
     });
-    /** Remove room from cache */
-    lobby.splice(lobbyRoomIndex, 1);
+
+    /** If we simply await without giving condition, this would delete more than 1 room :D */
+    if (deletedCount) {
+        /** Remove room from cache */
+        lobby.splice(lobbyRoomIndex, 1);
+    }
 };
 
 const isLastPlayer = (roomIndex) => {
@@ -126,11 +124,7 @@ module.exports = (lobbyNps, socket) => {
         const lobbyRoom = await Lobby.findOne({ lobbyCode });
 
         if (!lobbyRoom) {
-            console.warn(
-                'room with lobby code: "',
-                lobbyCode,
-                '" was not found!'
-            );
+            console.warn('room with lobby code: "', lobbyCode, '" was not found!');
             responseCb({
                 status: 400,
                 message: 'lobby was not found',
@@ -173,11 +167,7 @@ module.exports = (lobbyNps, socket) => {
         const lobbyRoom = await Lobby.findOne({ lobbyCode });
 
         if (!lobbyRoom) {
-            console.warn(
-                'room with lobby code: "',
-                lobbyRoom,
-                '" was not found!'
-            );
+            console.warn('room with lobby code: "', lobbyRoom, '" was not found!');
             responseCb({
                 status: 400,
                 message: 'room was not found',
@@ -227,11 +217,7 @@ module.exports = (lobbyNps, socket) => {
                             message: 'The game is about to start',
                         });
 
-                        startCountdownHandler(
-                            lobbyNps,
-                            lobbyRoomIndex,
-                            lobbyCode
-                        );
+                        startCountdownHandler(lobbyNps, lobbyRoomIndex, lobbyCode);
                     }
                 }
             } catch (error) {
@@ -246,34 +232,23 @@ module.exports = (lobbyNps, socket) => {
     };
 
     const leaveRoomHandler = async (room, id) => {
-        const { found, lobbyRoomIndex, playerIndex } = findSocketIDIndexInLobby(
-            lobby,
-            id
-        );
+        const { found, lobbyRoomIndex, playerIndex } = findSocketIDIndexInLobby(lobby, id);
 
         if (found) {
             /** if the player exiting is the owner of the room */
             if (lobby[lobbyRoomIndex].players[playerIndex].isOwner) {
                 /** Emit a message to all sockets in the room */
+
                 emitRoomDestroyed(lobbyNps, lobby[lobbyRoomIndex].lobbyCode, {
                     reason: 'Lobby room owner has exited',
                 });
-
-                // lobbyNps
-                //     .in(lobby[lobbyRoomIndex].lobbyCode)
-                //     .socketsLeave(lobby[lobbyRoomIndex].lobbyCode);
 
                 await destroyLobbyRoom(lobbyRoomIndex);
             } /** Else only remove the player who left */ else {
                 removePlayerFromLobbyRoom(lobbyRoomIndex, playerIndex);
 
                 /** Emit a message to all sockets in the room */
-                const {
-                    playersAmount,
-                    players,
-                    lobbyCode,
-                    hasCountdownStarted,
-                } = lobby[lobbyRoomIndex];
+                const { playersAmount, players, lobbyCode, hasCountdownStarted } = lobby[lobbyRoomIndex];
 
                 emitLobbyPlayers(lobbyNps, lobbyCode, {
                     playersAmount,
@@ -281,8 +256,7 @@ module.exports = (lobbyNps, socket) => {
                     message: 'A player has left',
                 });
 
-                if (hasCountdownStarted)
-                    stopCountdownHandler(lobbyNps, lobbyRoomIndex, lobbyCode);
+                if (hasCountdownStarted) stopCountdownHandler(lobbyNps, lobbyRoomIndex, lobbyCode);
             }
         }
     };
@@ -309,6 +283,7 @@ module.exports = (lobbyNps, socket) => {
                 players: players.map((player) => ({
                     playerID: player.playerID,
                     playerName: player.playerName,
+                    isOwner: player.isOwner,
                 })),
                 creationDate: new Date(),
             });
@@ -321,5 +296,13 @@ module.exports = (lobbyNps, socket) => {
 
             emitStartGame(lobbyNps, lobbyCode, false);
         }
+    });
+
+    socket.on('log-vals', () => {
+        console.log('-----------------------------------------------------------');
+        for (let i = 0; i < lobby.length; i++) {
+            console.log('Lobby Room ', i, ' : ', lobby[i]);
+        }
+        console.log('-----------------------------------------------------------');
     });
 };
