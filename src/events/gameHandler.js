@@ -39,11 +39,7 @@ const verifyEmitterToBeOwner = (gameRoom, playerID) => {
             if (player.playerID === playerID) return true;
         }
     }
-    throw new Error(
-        'Event emitter with ID ',
-        playerID,
-        ' is not the game owner'
-    );
+    throw new Error('Event emitter with ID ', playerID, ' is not the game owner');
 };
 
 const indexOfGameRoom = (gameCode) => {
@@ -160,17 +156,11 @@ module.exports = (gameNps, socket) => {
         try {
             console.group('join-game');
             console.log('recieved args :', { gameCode, playerID, playerName });
-            if (!gameCode || !playerID || !playerName)
-                throw new Error('Required args cannot be empty');
+            if (!gameCode || !playerID || !playerName) throw new Error('Required args cannot be empty');
 
             // Join players to the same gameCode
             socket.join(gameCode);
-            console.log(
-                'joined socket ID :',
-                socket.id,
-                ' to room: ',
-                gameCode
-            );
+            console.log('joined socket ID :', socket.id, ' to room: ', gameCode);
 
             console.log('checking if room Index already exists...');
             const gameRoomIndex = indexOfGameRoom(gameCode);
@@ -178,34 +168,25 @@ module.exports = (gameNps, socket) => {
                 console.log('room Index exists, value :', gameRoomIndex);
 
                 console.log('checking if player already exists in room...');
-                const { found: playerExists } = findPlayerIDIndexInRooms(
-                    gameRoomIndex,
-                    playerID
-                );
+                const { found: playerExists } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
 
                 if (!playerExists) {
                     console.log('player does not exists');
-                    console.log(
-                        'proceeding to creating a new player entry to cache with values:',
-                        {
-                            gameCode,
-                            socketID: socket.id,
-                            playerID,
-                            playerName,
-                        }
-                    );
-                    addPlayer(gameCode, socket.id, playerID, playerName);
-                }
-            } else {
-                console.log(
-                    'room index does not exist, proceeding to create a new room with values: ',
-                    {
-                        gameCode: gameCode,
+                    console.log('proceeding to creating a new player entry to cache with values:', {
+                        gameCode,
                         socketID: socket.id,
                         playerID,
                         playerName,
-                    }
-                );
+                    });
+                    addPlayer(gameCode, socket.id, playerID, playerName);
+                }
+            } else {
+                console.log('room index does not exist, proceeding to create a new room with values: ', {
+                    gameCode: gameCode,
+                    socketID: socket.id,
+                    playerID,
+                    playerName,
+                });
                 createRoom(gameCode, socket.id, playerID, playerName);
             }
 
@@ -227,11 +208,7 @@ module.exports = (gameNps, socket) => {
             console.groupEnd('join-game');
         } catch (error) {
             console.error(error);
-            if (
-                error &&
-                error.message &&
-                error.message.includes('Required args cannot be empty')
-            )
+            if (error && error.message && error.message.includes('Required args cannot be empty'))
                 return responseCb({
                     status: 405,
                     message: error,
@@ -247,8 +224,7 @@ module.exports = (gameNps, socket) => {
         try {
             console.group('leave-room');
 
-            const { found, gameRoomIndex, playerIndex } =
-                findSocketIDIndexInRooms(id);
+            const { found, gameRoomIndex, playerIndex } = findSocketIDIndexInRooms(id);
 
             console.log('found leaving player game room info :', {
                 found,
@@ -273,10 +249,7 @@ module.exports = (gameNps, socket) => {
             const { playerID } = game[gameRoomIndex].players[playerIndex];
 
             gameNps.to(gameCode).emit('game-players', {
-                message:
-                    'Player ID' +
-                    playerID +
-                    ' has dies because they left the game',
+                message: 'Player ID' + playerID + ' has dies because they left the game',
                 players: safeParsePlayers(players),
             });
 

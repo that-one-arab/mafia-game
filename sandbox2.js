@@ -1,12 +1,28 @@
-const array1 = [1, 2, 3, 4];
+/** */
+function returnResult(outputLength = 20) {
+    const arr = [
+        {
+            name: 'Element 1',
+            frequency: 7,
+        },
+        {
+            name: 'Element 2',
+            frequency: 10,
+        },
+        {
+            name: 'Element 3',
+            frequency: 6,
+        },
+    ];
 
-// fill with 0 from position 2 until position 4
-console.log(array1.fill(0, 4));
-// expected output: [1, 2, 0, 0]
+    // Generate a roles sequence, that has elements equal to or bigger than players length times 10
+    // Randomly Sort roles seq
+    //
 
-// fill with 5 from position 1
-// console.log(array1.fill(5, 1));
-// expected output: [1, 5, 5, 5]
+    // Take the output length and multiply it by 10
+    // Randomly Sort the result
+    // Loop over the result, find how frequent a role is present
+    // Compare it to the actual roles array
+}
 
-// console.log(array1.fill(6));
-// expected output: [6, 6, 6, 6]
+returnResult(40);
