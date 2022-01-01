@@ -126,14 +126,24 @@ function assignRoles(teams) {
     /** */
     function verifyRequiredRoles(seq, roles) {
         const res = seq;
-        const selectedRoles = seq.map((role) => role.name);
+        let selectedRoles;
 
         roles.forEach((role, i) => {
+            selectedRoles = res.map((role) => role.name);
             if (role.required && !selectedRoles.includes(role.name)) {
                 res.shift();
                 res.push(role);
             }
         });
+
+        selectedRoles = res.map((role) => role.name);
+
+        for (let i = 0; i < roles.length; i++) {
+            if (roles[i].required && !selectedRoles.includes(roles[i].name)) {
+                console.error('seq: ', seq, ' did not include the role: ', roles[i].name);
+                throw new Error('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+            }
+        }
 
         return res;
     }
@@ -288,51 +298,51 @@ let players = [
     {
         playerName: 'Rami',
     },
-    // {
-    //     playerName: 'Ahmed',
-    // },
-    // {
-    //     playerName: 'Michael',
-    // },
-    // {
-    //     playerName: 'Lewis',
-    // },
-    // {
-    //     playerName: 'Antonio',
-    // },
-    // {
-    //     playerName: 'Roger',
-    // },
-    // {
-    //     playerName: 'Harry',
-    // },
-    // {
-    //     playerName: 'Gilbert',
-    // },
-    // {
-    //     playerName: 'Asshole',
-    // },
-    // {
-    //     playerName: 'Felix',
-    // },
-    // {
-    //     playerName: 'Historia',
-    // },
-    // {
-    //     playerName: 'Ali',
-    // },
-    // {
-    //     playerName: 'Amina',
-    // },
-    // {
-    //     playerName: 'Adem',
-    // },
-    // {
-    //     playerName: 'Sudad',
-    // },
-    // {
-    //     playerName: 'Johnson',
-    // },
+    {
+        playerName: 'Ahmed',
+    },
+    {
+        playerName: 'Michael',
+    },
+    {
+        playerName: 'Lewis',
+    },
+    {
+        playerName: 'Antonio',
+    },
+    {
+        playerName: 'Roger',
+    },
+    {
+        playerName: 'Harry',
+    },
+    {
+        playerName: 'Gilbert',
+    },
+    {
+        playerName: 'Asshole',
+    },
+    {
+        playerName: 'Felix',
+    },
+    {
+        playerName: 'Historia',
+    },
+    {
+        playerName: 'Ali',
+    },
+    {
+        playerName: 'Amina',
+    },
+    {
+        playerName: 'Adem',
+    },
+    {
+        playerName: 'Sudad',
+    },
+    {
+        playerName: 'Johnson',
+    },
 ];
 
 players = shuffle(players);
