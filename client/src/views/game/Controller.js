@@ -43,6 +43,14 @@ function Controller({ socket, state, dispatch }) {
         });
     }, [socket, lobbyCode, myPlayer.playerID, myPlayer.playerName, dispatch]);
 
+    useEffect(() => {
+        if (state.gameOptions.isRoleAssigned) {
+            socket.emit('get-game-props', lobbyCode, (props) => {
+                console.log('get-game-props :', props);
+            });
+        }
+    }, [socket, lobbyCode, state.gameOptions.isRoleAssigned]);
+
     /** Updates status of current players */
     useEffect(() => {
         socket.on('game-players', (res) => {

@@ -21,6 +21,10 @@ const game = [
         gameConfig: {
             isRoomVerified: false,
         },
+        gameProgress: {
+            areRolesAssigned: false,
+            gamePhase: undefined,
+        },
     },
 ];
 
@@ -275,7 +279,7 @@ module.exports = (gameNps, socket) => {
             const players = game[indexOfGameRoom(gameCode)].players;
             console.log('current room players :', players);
 
-            if (game[gameRoomIndex].gameConfig.areRolesAssigned) {
+            if (game[gameRoomIndex].gameProgress.areRolesAssigned) {
                 responseCb({
                     status: 200,
                     message: 'Roles are already assigned. Phase is -' + game[gameRoomIndex].gameProgress.gamePhase,
@@ -359,7 +363,7 @@ module.exports = (gameNps, socket) => {
                     // console.log('setting game owner to true...');
                     updateGameRoomOwner(gameRoomIndex, playerID);
 
-                    const { playersAmount, players: dbPlayers } = dbGame;
+                    const { players: dbPlayers } = dbGame;
                     // console.log('dbGame props:', { playersAmount, dbPlayers });
 
                     const { players: cachePlayers } = game[gameRoomIndex];
@@ -378,7 +382,7 @@ module.exports = (gameNps, socket) => {
 
                         console.log('players after assigning roles', game[gameRoomIndex].players);
 
-                        game[gameRoomIndex].gameConfig.areRolesAssigned = true;
+                        game[gameRoomIndex].gameProgress.areRolesAssigned = true;
                         game[gameRoomIndex].gameProgress.gamePhase = 'day';
                     } else {
                         console.warn('VERIFICATIONS DID NOT PASS!!');
@@ -391,5 +395,16 @@ module.exports = (gameNps, socket) => {
         }
 
         console.groupEnd('verify-room');
+    });
+
+    socket.on('get-game-props', (gameCode, responseCb) => {
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+
+        if (gameRoomIndex !== -1) {
+            responseCb({
+                status: '200',
+                props: game[gameRoomIndex].gameProgress,
+            });
+        }
     });
 };
