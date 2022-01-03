@@ -129,6 +129,10 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
         gameConfig: {
             isRoomVerified: false,
             hasGameStarted: false,
+            areRolesAssigned: false,
+        },
+        gameProgress: {
+            gamePhase: '',
         },
     });
 };
@@ -271,11 +275,13 @@ module.exports = (gameNps, socket) => {
             const players = game[indexOfGameRoom(gameCode)].players;
             console.log('current room players :', players);
 
-            responseCb({
-                status: 200,
-                message: '',
-                players: safeParsePlayers(players),
-            });
+            if (game[gameRoomIndex].gameConfig.areRolesAssigned) {
+                responseCb({
+                    status: 200,
+                    message: 'Roles are already assigned. Phase is -' + game[gameRoomIndex].gameProgress.gamePhase,
+                    players: safeParsePlayers(players),
+                });
+            }
 
             gameNps.to(gameCode).emit('game-players', {
                 message: 'Player ID' + playerID + ' joined the game',
@@ -338,6 +344,7 @@ module.exports = (gameNps, socket) => {
     });
 
     socket.on('verify-room', async (gameCode, playerID) => {
+        console.group('verify-room');
         const dbGame = await Game.findOne({ gameCode });
         if (dbGame) {
             let ownerFound = false;
@@ -348,23 +355,31 @@ module.exports = (gameNps, socket) => {
             if (ownerFound) {
                 const gameRoomIndex = indexOfGameRoom(gameCode);
 
-                if (gameRoomIndex !== -1) {
-                    console.log('setting game owner to true...');
+                if (gameRoomIndex !== -1 && game[gameRoomIndex].gameConfig.areRolesAssigned === false) {
+                    // console.log('setting game owner to true...');
                     updateGameRoomOwner(gameRoomIndex, playerID);
 
                     const { playersAmount, players: dbPlayers } = dbGame;
-                    console.log('dbGame props:', { playersAmount, dbPlayers });
+                    // console.log('dbGame props:', { playersAmount, dbPlayers });
 
                     const { players: cachePlayers } = game[gameRoomIndex];
-                    console.log('game cache props:', { cachePlayers });
+                    // console.log('game cache props:', { cachePlayers });
 
-                    console.log('verifying players...');
+                    // console.log('verifying players...');
                     if (arePlayersVerified(dbPlayers, cachePlayers)) {
-                        console.log('players verifications passed');
+                        // console.log('players verifications passed');
                         const assignedPlayers = assignPlayers(cachePlayers);
-                        console.log('assignedPlayers :', assignedPlayers);
+                        // console.log('assignedPlayers :', assignedPlayers);
+
+                        console.log('players before assigning roles', game[gameRoomIndex].players);
 
                         assignRolesHandler(gameNps, assignedPlayers);
+                        console.log('assigned roles :', assignedPlayers);
+
+                        console.log('players after assigning roles', game[gameRoomIndex].players);
+
+                        game[gameRoomIndex].gameConfig.areRolesAssigned = true;
+                        game[gameRoomIndex].gameProgress.gamePhase = 'day';
                     } else {
                         console.warn('VERIFICATIONS DID NOT PASS!!');
                         /** This code block would run if one or more players who have joined the game
@@ -374,5 +389,7 @@ module.exports = (gameNps, socket) => {
                 }
             }
         }
+
+        console.groupEnd('verify-room');
     });
 };

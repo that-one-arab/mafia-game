@@ -7,18 +7,22 @@ export const initialState = {
         playerTeam: '',
         playerAlive: true,
     },
+    gameProgress: {
+        isRoleAssigned: false,
+        gamePhase: undefined,
+        /** The amount of days that passed */
+        daysCount: 0,
+
+        /** Which player voted for which player */
+        lynchVotes: [],
+    },
+
     /** Other players */
     players: [],
     /** Which player was selected to perfrom an action on */
     playerActionOn: 'PLAYER_ID',
     /** If the player is of team mafia, this would be populated */
     playerMafiaTeam: [],
-
-    /** The amount of days that passed */
-    daysCount: 0,
-
-    /** Which player voted for which player */
-    lynchVotes: [],
 
     /** Results of the game (showing the players and their roles and who won) */
     gameResults: [],
@@ -32,7 +36,26 @@ export const reducer = (state = initialState, action) => {
                 players: action.payload,
             };
 
+        case 'SET_PLAYER':
+            return {
+                ...state,
+                myPlayer: {
+                    /** Sanity check */
+                    ...state.myPlayer,
+                    ...action.payload,
+                },
+            };
+
+        case 'ROLE_ASSIGNED':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    isRoleAssigned: true,
+                    gamePhase: state.gameProgress.gamePhase ? state.gameProgress.gamePhase : 'day',
+                },
+            };
         default:
-            break;
+            return state;
     }
 };

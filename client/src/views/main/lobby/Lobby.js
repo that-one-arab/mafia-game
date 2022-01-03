@@ -29,7 +29,8 @@ function Lobby({ socket }) {
 
     /** Redux main state */
     const { lobbyCode, players } = useSelector((state) => state.lobby);
-    const { playersAmount } = useSelector((state) => state.gameOptions);
+    const { gameOptions } = useSelector((state) => state);
+    const { playersAmount } = gameOptions;
     // console.log({ lobbyCode, players, myPlayer, playersAmount });
 
     const [timer, setTimer] = useState(10);
@@ -74,6 +75,10 @@ function Lobby({ socket }) {
         socket.on('start-countdown', () => {
             // console.log('starting countdown...');
             setStartCountdown(true);
+
+            window.sessionStorage.setItem('global-myplayer', JSON.stringify(myPlayer));
+            window.sessionStorage.setItem('global-gameoptions', JSON.stringify(gameOptions));
+            window.sessionStorage.setItem('global-lobbycode', lobbyCode);
         });
 
         socket.on('stop-countdown', () => {
@@ -81,7 +86,7 @@ function Lobby({ socket }) {
             setTimer(10);
             setStartCountdown(false);
         });
-    }, [socket, history]);
+    }, [socket, history, myPlayer, gameOptions, lobbyCode]);
 
     useEffect(() => {
         if (myPlayer.isOwner && players.length === playersAmount && timer === 0) {

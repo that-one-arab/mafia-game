@@ -25,9 +25,9 @@
 }
 
 /* Caption text */
-.text {
+.name {
     color: #0e0d0d;
-    font-size: 15px;
+    font-size: 25px;
     position: absolute;
     top: 250px;
     left: 0;
@@ -35,28 +35,22 @@
     text-align: center;
 }
 
-/* Fading animation */
-.fade {
-    -webkit-animation-name: fade;
-    -webkit-animation-duration: 1s;
-    animation-name: fade;
-    animation-duration: 1s;
+.description {
+    color: #0e0d0d;
+    font-size: 15px;
+    position: absolute;
+    top: 300px;
+    left: 0;
+    right: 0;
+    text-align: center;
 }
 
-@-webkit-keyframes fade {
-    from {
-        opacity: 0.4;
-    }
-    to {
-        opacity: 1;
-    }
+.header {
+    display: flex;
+    justify-content: space-around;
 }
 
-@keyframes fade {
-    from {
-        opacity: 0.4;
-    }
-    to {
-        opacity: 1;
-    }
+.player {
+    display: flex;
+    justify-content: space-around;
 }

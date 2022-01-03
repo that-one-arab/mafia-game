@@ -258,6 +258,14 @@ const townRoles = [
         required: true,
     },
     {
+        name: 'Sherrif',
+        team: TOWN,
+        description: 'May investigate one person each night, knowing if they are mafia or not',
+        frequency: 2,
+        unique: false,
+        required: true,
+    },
+    {
         name: 'Detective',
         team: TOWN,
         description: 'May detect one person each night, learning their role.',
@@ -291,7 +299,7 @@ const townRoles = [
         required: false,
     },
     {
-        name: 'Copper',
+        name: 'Mermaid',
         team: TOWN,
         description: 'May choose one player to block them from using their ability',
         frequency: 2,
@@ -304,7 +312,7 @@ const mafiaRoles = [
     {
         name: 'Mafia',
         team: MAFIA,
-        description: 'Regular mafia-aligned role. May kill one person each night',
+        description: 'Regular mafia-aligned role. May kill one person each night. If godfather died, can be promoted to take their place',
         frequency: 3,
         unique: false,
         required: true,
@@ -312,7 +320,7 @@ const mafiaRoles = [
     {
         name: 'Godfather',
         team: MAFIA,
-        description: 'Head of the mafia. If detected, comes up as "Townie".',
+        description: 'Head of the mafia. If detected, comes up as "Townie". During night, kill decision goes to you',
         frequency: 9,
         unique: true,
         required: true,

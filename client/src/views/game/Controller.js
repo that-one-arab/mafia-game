@@ -1,142 +1,47 @@
 import { useState, useEffect, useReducer } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import io from 'socket.io-client';
-import { Svg } from '../../assets/svg';
-import { useInterval } from '../../hooks';
+import Day from './Day';
 import { initialState, reducer } from './reducer';
+import RoleAssignment from './RoleAssignment';
 import './style.css';
 
-function RoleAssignment() {
-    return (
-        <div>
-            <h1>Hello role RoleAssignment</h1>
-        </div>
-    );
+function Renderer({ socket, state, dispatch }) {
+    const { isRoleAssigned, gamePhase } = state.gameProgress;
+    if (isRoleAssigned && gamePhase === 'day') return <Day state={state} dispatch={dispatch} socket={socket} />;
+    else return <RoleAssignment state={state} dispatch={dispatch} socket={socket} />;
 }
 
-function Day() {
-    return (
-        <div>
-            <h1>Day</h1>
-        </div>
-    );
-}
+function Controller({ socket, state, dispatch }) {
+    const myPlayer = JSON.parse(window.sessionStorage.getItem('global-myplayer'));
+    const gameOptions = JSON.parse(window.sessionStorage.getItem('global-gameoptions'));
+    const lobbyCode = window.sessionStorage.getItem('global-lobbycode');
 
-function Night() {
-    return (
-        <div>
-            <h1>Night</h1>
-        </div>
-    );
-}
-
-function Results(params) {
-    return (
-        <div>
-            <h1>Results</h1>
-        </div>
-    );
-}
-
-/**
- * It needs to slide throw all images: (1, 2 , 3, 1, 2 ,3)
- * Once role is resolved, it needs to stop at the appropriate image
- */
-function AutoSlider() {
-    const els = [
-        {
-            label: 'Mafia',
-            name: 'mafia',
-            component: <Svg className={'svg slide-img'} svg='mafia' />,
-        },
-        {
-            label: 'Doctor',
-            name: 'doctor',
-            component: <Svg className={'svg slide-img'} svg='doctor' />,
-        },
-        {
-            label: 'Investigator',
-            name: 'investigator',
-            component: <Svg className={'svg slide-img'} svg='investigator' />,
-        },
-        {
-            label: 'Villager',
-            name: 'villager',
-            component: <Svg className={'svg slide-img'} svg='villager' />,
-        },
-    ];
-
-    const [slideIndex, setSlideIndex] = useState(0);
-
-    useInterval(() => {
-        if (slideIndex + 1 === els.length) setSlideIndex(0);
-        else setSlideIndex(slideIndex + 1);
-    }, 1000);
-
-    return (
-        <div>
-            <div className='slideshow-container'>
-                {els.map((el, i) => (
-                    <div key={i} className={`${slideIndex === i ? 'mySlides-on' : 'mySlides-off'} fade`}>
-                        {el.component}
-                        <div className='text'>{el.label}</div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function Controller({ socket, mainDispatch }) {
-    const { lobby, gameOptions, myPlayer } = useSelector((state) => state);
-    const { lobbyCode } = lobby;
     const { playersAmount } = gameOptions;
 
-    console.log({ myPlayer });
-
-    const [state, dispatch] = useReducer(reducer, initialState);
-    console.log('state.players :', state && state.players && state.players);
-    const { players } = state;
-
-    /** Saves game and player neccassry info to session storage (garaunteed to run if player was pushed from lobby) */
-    useEffect(() => {
-        if (myPlayer.playerID && myPlayer.playerName && lobbyCode && playersAmount) {
-            window.sessionStorage.setItem('player', JSON.stringify(myPlayer));
-            window.sessionStorage.setItem('lobbyCode', lobbyCode);
-            window.sessionStorage.setItem('gameOptions', JSON.stringify(gameOptions));
-        }
-    }, [myPlayer, lobbyCode, gameOptions, playersAmount]);
-
-    /** Restores game and player neccassry info from session storage (in the case of a refresh or disconnection) */
-    useEffect(() => {
-        if (!myPlayer.playerID || !myPlayer.playerName || !lobbyCode || !playersAmount) {
-            const player = JSON.parse(window.sessionStorage.getItem('player'));
-            console.log('session storage player :', player);
-
-            const lobbyCode = window.sessionStorage.getItem('lobbyCode');
-            const ssGameOptions = JSON.parse(window.sessionStorage.getItem('gameOptions'));
-
-            /** session storage actually returns string 'undefined' instead of type undefined that's why it's handled as string */
-            if (player) {
-                mainDispatch({ type: 'SET_PLAYER_ID', payload: player.playerID });
-                mainDispatch({ type: 'SET_PLAYER_NAME', payload: player.playerName });
-                player.isOwner && mainDispatch({ type: 'SET_ROOM_OWNER_TRUE' });
-                mainDispatch({ type: 'SET_LOBBY_CODE', payload: lobbyCode });
-                mainDispatch({ type: 'SET_PLAYERS_AMOUNT', payload: ssGameOptions.playersAmount });
-            } else {
-                console.warn('No player ID is was stored in session, needs handling');
-            }
-        }
-    }, [myPlayer, mainDispatch, lobbyCode, playersAmount]);
+    console.log('My Player global: ', myPlayer);
+    console.log('Local State: ', state);
 
     /** Fired once. attempts to join a player to a room, or if room doesnt exist; create and join a room */
     useEffect(() => {
-        if (myPlayer.playerID && myPlayer.playerName && lobbyCode) {
-            socket.emit('join-game', lobbyCode, myPlayer.playerID, myPlayer.playerName, (res) => {
-                if (res.status !== 200) console.warn(res);
-            });
-        }
-    }, [socket, lobbyCode, myPlayer]);
+        console.log('joining a game...');
+        socket.emit('join-game', lobbyCode, myPlayer.playerID, myPlayer.playerName, (res) => {
+            if (res.status !== 200) console.warn(res);
+
+            window.sessionStorage.setItem(
+                'local-gameProgress',
+                JSON.stringify({
+                    ...JSON.parse(window.sessionStorage.getItem('local-gameprogress')),
+                    hasJoinedGameRoom: true,
+                })
+            );
+
+            if (res.message.includes('Roles are already assigned')) {
+                const gamePhase = res.message.split(' ').pop();
+                console.log('gamePhase :', gamePhase);
+            }
+        });
+    }, [socket, lobbyCode, myPlayer.playerID, myPlayer.playerName, dispatch]);
 
     /** Updates status of current players */
     useEffect(() => {
@@ -145,38 +50,29 @@ function Controller({ socket, mainDispatch }) {
 
             dispatch({ type: 'SET_PLAYERS', payload: res.players });
         });
-    }, [socket]);
+    }, [socket, dispatch]);
 
     /** Fires the verify-room event, only if client is room owner. Server validates the room and it's players then
      * decides whether to respond with 'assigned-role' event or not */
     useEffect(() => {
         if (myPlayer.isOwner) {
             console.log('the player is the OWNER');
-            if (playersAmount === players.length) {
+            if (playersAmount === state.players.length) {
                 console.log('Players FULL, emitting!');
                 socket.emit('verify-room', lobbyCode, myPlayer.playerID);
             }
         }
-    }, [socket, lobbyCode, myPlayer, players, playersAmount]);
+    }, [socket, lobbyCode, myPlayer, state.players, playersAmount]);
 
-    /** Handles assigning role and team to client */
-    useEffect(() => {
-        socket.on('assigned-role', (player) => {
-            console.log('assigned-role, player :', player);
-        });
-    }, [socket]);
-
-    return (
-        <div>
-            <RoleAssignment />
-            <AutoSlider />
-        </div>
-    );
+    return <Renderer socket={socket} state={state} dispatch={dispatch} />;
 }
 
 export default function ControllerWrapper() {
     const [socket, setSocket] = useState(undefined);
-    const dispatch = useDispatch();
+
+    const [state, dispatch] = useReducer(reducer, initialState);
+
+    const mainDispatch = useDispatch();
 
     /** Socket initialization */
     useEffect(() => {
@@ -184,19 +80,44 @@ export default function ControllerWrapper() {
             transports: ['websocket'],
         });
         setSocket(newSocket);
-        dispatch({ type: 'SET_CONNECTED_TO_TRUE' });
+        mainDispatch({ type: 'SET_CONNECTED_TO_TRUE' });
 
         return () => {
-            dispatch({ type: 'SET_CONNECTED_TO_FALSE' });
+            mainDispatch({ type: 'SET_CONNECTED_TO_FALSE' });
             newSocket.close();
             console.log('disconnected socket...');
         };
-    }, [setSocket, dispatch]);
+    }, [setSocket, mainDispatch]);
+
+    /** Restores game and player neccassry info from session storage TO LOCAL STORE (in the case of a refresh or disconnection) */
+    useEffect(() => {
+        if (window.sessionStorage.getItem('local-player')) {
+            dispatch({ type: 'SET_PLAYER', payload: JSON.parse(window.sessionStorage.getItem('local-player')) });
+        } else {
+            window.sessionStorage.setItem(
+                'local-player',
+                JSON.stringify({
+                    ...initialState.myPlayer,
+                })
+            );
+        }
+
+        if (window.sessionStorage.getItem('local-gameprogress')) {
+            dispatch({ type: 'SET_GAME_PROGRESS', payload: JSON.parse(window.sessionStorage.getItem('local-gameprogress')) });
+        } else {
+            window.sessionStorage.setItem(
+                'local-gameprogress',
+                JSON.stringify({
+                    ...initialState.gameProgress,
+                })
+            );
+        }
+    }, []);
 
     if (socket)
         return (
             <div>
-                <Controller socket={socket} mainDispatch={dispatch} />
+                <Controller socket={socket} dispatch={dispatch} state={state} />
             </div>
         );
     else return null;

@@ -10,6 +10,8 @@ const ERR_INPUT_PLAYER_NAME = {
 };
 
 export default function JoinGame() {
+    window.sessionStorage.clear();
+
     const history = useHistory();
     const [toast, setToast] = useState({
         show: 0,
@@ -20,12 +22,10 @@ export default function JoinGame() {
     const { playerName } = useSelector((state) => state.myPlayer);
     const dispatch = useDispatch();
 
-    const dispatchPlayerNameHandler = (e) =>
-        dispatch({ type: 'SET_PLAYER_NAME', payload: e.target.value });
+    const dispatchPlayerNameHandler = (e) => dispatch({ type: 'SET_PLAYER_NAME', payload: e.target.value });
 
     const joinGameNextScreenHandler = () => {
-        if (playerName.trim() === '')
-            setToast({ ...ERR_INPUT_PLAYER_NAME, show: toast.show + 1 });
+        if (playerName.trim() === '') setToast({ ...ERR_INPUT_PLAYER_NAME, show: toast.show + 1 });
         else history.push('/join-game/enter-code');
     };
 
@@ -34,11 +34,7 @@ export default function JoinGame() {
             <Toaster toast={toast} setToast={setToast} />
             <div>
                 <p>Please input your name</p>
-                <input
-                    onChange={dispatchPlayerNameHandler}
-                    placeholder='name goes here'
-                    value={playerName}
-                />
+                <input onChange={dispatchPlayerNameHandler} placeholder='name goes here' value={playerName} />
                 <button onClick={joinGameNextScreenHandler}>Continue</button>
             </div>
         </div>

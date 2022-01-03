@@ -16,6 +16,8 @@ const ERR_INPUT_PLAYER_NAME = {
 };
 
 export default function CreateGame() {
+    window.sessionStorage.clear();
+
     const history = useHistory();
     const dispatch = useDispatch();
     const playersAmount = useSelector((state) => state.gameOptions.playersAmount);
