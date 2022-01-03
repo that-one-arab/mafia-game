@@ -16,17 +16,40 @@ const game = [
                 playerTeam: '',
                 playerAlive: true,
                 playerDisconnected: false,
+                playerIn: undefined,
+                amountOfVotes: 0,
             },
         ],
         gameConfig: {
             isRoomVerified: false,
         },
         gameProgress: {
+            gamePhase: '',
+            hasGameStarted: false,
             areRolesAssigned: false,
-            gamePhase: undefined,
+            currentVotes: [
+                {
+                    playerID: '',
+                    voters: [''],
+                },
+            ],
+            dayCount: 0,
         },
     },
 ];
+
+const voteResult = (roomIndex, currentVotes) => {
+    const alivePlayers = game[roomIndex].players.filter((player) => player.playerAlive);
+
+    for (let i = 0; i < currentVotes.length; i++) {
+        const vote = currentVotes[i];
+        if (alivePlayers.length / vote.voters.length < 2) {
+            return alivePlayers.find((player) => player.playerID === vote.playerID);
+        }
+    }
+
+    return false;
+};
 
 const parseGameRoomPlayers = (players) => {
     return players.map((player) => ({
@@ -110,6 +133,8 @@ const addPlayer = (gameCode, socketID, playerID, playerName) => {
             playerTeam: '',
             playerAlive: true,
             playerDisconnected: false,
+            playerIn: undefined,
+            amountOfVotes: 0,
         },
     ];
 };
@@ -132,11 +157,13 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
         ],
         gameConfig: {
             isRoomVerified: false,
-            hasGameStarted: false,
-            areRolesAssigned: false,
         },
         gameProgress: {
             gamePhase: '',
+            hasGameStarted: false,
+            areRolesAssigned: false,
+            currentVotes: [],
+            dayCount: 0,
         },
     });
 };
@@ -223,6 +250,66 @@ const safeParsePlayers = (players) => {
         isOwner: player.isOwner,
     }));
 };
+
+/** */
+function initiateVotes(roomIndex, players) {
+    const votesArr = players.map((player) => ({
+        playerID: player.playerID,
+        voters: [],
+    }));
+
+    game[roomIndex].gameProgress.currentVotes = votesArr;
+}
+
+/** */
+function removePrevVote(roomIndex, voterID) {
+    console.group('removePrevVote');
+    console.log('values :', { roomIndex, voterID });
+
+    const newVotes = [...game[roomIndex].gameProgress.currentVotes];
+    console.log('currentVotes :', newVotes);
+
+    for (let i = 0; i < newVotes.length; i++) {
+        console.log('looping index: ', i);
+        const vote = newVotes[i];
+        console.log('vote obj :', vote);
+
+        if (vote.voters.includes(voterID)) {
+            console.log('voter ID included, before splice :', vote);
+            vote.voters.splice(vote.voters.indexOf(voterID), 1);
+            console.log('after splice :', vote);
+        }
+    }
+
+    console.log('settign new game room current votes...');
+    game[roomIndex].gameProgress.currentVotes = newVotes;
+    console.log('new value :', game[roomIndex].gameProgress.currentVotes);
+
+    console.groupEnd('removePrevVote');
+}
+
+/** */
+function insertVote(roomIndex, voterID, votedID) {
+    console.group('insertVote');
+    console.log('values :', { roomIndex, voterID, votedID });
+
+    const newVotes = [...game[roomIndex].gameProgress.currentVotes];
+    console.log('currentVotes :', newVotes);
+
+    for (let i = 0; i < newVotes.length; i++) {
+        const vote = newVotes[i];
+
+        if (vote.playerID === votedID) {
+            vote.voters = [...vote.voters, voterID];
+        }
+    }
+
+    game[roomIndex].gameProgress.currentVotes = newVotes;
+
+    console.log('new value :', game[roomIndex].gameProgress.currentVotes);
+
+    console.groupEnd('insertVote');
+}
 
 module.exports = (gameNps, socket) => {
     console.log('a socket connected');
@@ -357,9 +444,12 @@ module.exports = (gameNps, socket) => {
             });
 
             if (ownerFound) {
+                console.log('owner was found');
                 const gameRoomIndex = indexOfGameRoom(gameCode);
+                console.log('gameRoomIndex :', gameRoomIndex);
 
-                if (gameRoomIndex !== -1 && game[gameRoomIndex].gameConfig.areRolesAssigned === false) {
+                console.log('areRolesAssigned :', game[gameRoomIndex].gameProgress.areRolesAssigned);
+                if (gameRoomIndex !== -1 && game[gameRoomIndex].gameProgress.areRolesAssigned === false) {
                     // console.log('setting game owner to true...');
                     updateGameRoomOwner(gameRoomIndex, playerID);
 
@@ -380,10 +470,15 @@ module.exports = (gameNps, socket) => {
                         assignRolesHandler(gameNps, assignedPlayers);
                         console.log('assigned roles :', assignedPlayers);
 
-                        console.log('players after assigning roles', game[gameRoomIndex].players);
-
+                        game[gameRoomIndex].players = assignedPlayers;
+                        game[gameRoomIndex].playersAmount = dbGame.playersAmount;
                         game[gameRoomIndex].gameProgress.areRolesAssigned = true;
+                        game[gameRoomIndex].gameProgress.hasGameStarted = true;
                         game[gameRoomIndex].gameProgress.gamePhase = 'day';
+
+                        initiateVotes(gameRoomIndex, assignedPlayers);
+
+                        console.log('players after assigning roles', game[gameRoomIndex].players);
                     } else {
                         console.warn('VERIFICATIONS DID NOT PASS!!');
                         /** This code block would run if one or more players who have joined the game
@@ -398,6 +493,7 @@ module.exports = (gameNps, socket) => {
     });
 
     socket.on('get-game-props', (gameCode, responseCb) => {
+        console.log('get-game-props: ', gameCode);
         const gameRoomIndex = indexOfGameRoom(gameCode);
 
         if (gameRoomIndex !== -1) {
@@ -405,6 +501,111 @@ module.exports = (gameNps, socket) => {
                 status: '200',
                 props: game[gameRoomIndex].gameProgress,
             });
+        }
+    });
+
+    socket.on('moved-to', (room, gameCode, playerID) => {
+        console.log('moved-to ', gameCode, playerID);
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+
+        if (gameRoomIndex !== -1) {
+            const { found, playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
+            if (found) {
+                const { players, playersAmount } = game[gameRoomIndex];
+
+                /** Fire below code only if not all players have already joined the same room component */
+                if (players.filter((player) => player.playerIn === room).length !== playersAmount) {
+                    game[gameRoomIndex].players[playerIndex].playerIn = room;
+
+                    const roomFilteredPlayers = players.filter((player) => player.playerIn === room);
+                    console.log('roomFilteredPlayers :', roomFilteredPlayers);
+
+                    if (playersAmount === roomFilteredPlayers.length) {
+                        console.log('emitting all-players-in-room with val: ', room);
+                        gameNps.to(gameCode).emit('all-players-in-room', room);
+
+                        if (room === 'day') {
+                            console.log('also emitting new day: ', game[gameRoomIndex].gameProgress.dayCount);
+                            console.log('before :', game[gameRoomIndex].gameProgress.dayCount);
+                            game[gameRoomIndex].gameProgress.dayCount = game[gameRoomIndex].gameProgress.dayCount + 1;
+                            console.log('after :', game[gameRoomIndex].gameProgress.dayCount);
+
+                            gameNps.to(gameCode).emit('day-count', game[gameRoomIndex].gameProgress.dayCount);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    socket.on('vote-for', (gameCode, voterID, votedID) => {
+        console.group('vote-for');
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+        console.log('got gameRoomIndex :', gameRoomIndex);
+
+        if (gameRoomIndex !== -1) {
+            const { found: voterIndexFound } = findPlayerIDIndexInRooms(gameRoomIndex, voterID);
+            const { found: votedIndexFound } = findPlayerIDIndexInRooms(gameRoomIndex, votedID);
+            console.log('got found for voter and voted :', voterIndexFound, votedIndexFound);
+
+            if (voterIndexFound && votedIndexFound) {
+                removePrevVote(gameRoomIndex, voterID);
+                console.log('removed previous vote');
+
+                insertVote(gameRoomIndex, voterID, votedID);
+                console.log('inserted new vote');
+
+                gameNps.to(gameCode).emit('votes', game[gameRoomIndex].gameProgress.currentVotes);
+                console.log('emitted "votes" to game room: ', gameCode, ' value: ', game[gameRoomIndex].gameProgress.currentVotes);
+            }
+        }
+
+        console.groupEnd('vote-for');
+    });
+
+    socket.on('vote-finished', (gameCode) => {
+        console.group('vote-finished');
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+        console.log('got gameRoomIndex :', gameRoomIndex);
+
+        if (gameRoomIndex !== -1) {
+            const votes = game[gameRoomIndex].gameProgress.currentVotes;
+
+            const voteRes = voteResult(gameRoomIndex, votes);
+
+            if (voteRes) {
+                const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, voteRes.playerID);
+                game[gameRoomIndex].players[playerIndex].playerAlive = false;
+
+                gameNps.to(gameCode).emit('game-players', {
+                    message: 'Player ID' + playerID + ' Has died',
+                    players: safeParsePlayers(game[gameRoomIndex].players),
+                });
+
+                gameNps.to(gameCode).emit('vote-result', voteRes);
+            } else {
+                gameNps.to(gameCode).emit('vote-result', 0);
+            }
+        }
+
+        console.groupEnd('vote-finished');
+    });
+
+    socket.on('transition-ready', (gameCode, playerID) => {
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+
+        if (gameRoomIndex !== -1) {
+            const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
+
+            const transitionTo = game[gameRoomIndex].players[playerIndex].playerIn === 'day' ? 'night' : 'day';
+            const newPlayers = game[gameRoomIndex].players.map((player) => ({
+                ...player,
+                playerIn: transitionTo,
+            }));
+
+            game[gameRoomIndex].players = newPlayers;
+
+            gameNps.to(gameCode).emit('transition-to', transitionTo);
         }
     });
 };

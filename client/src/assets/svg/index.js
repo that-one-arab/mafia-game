@@ -180,6 +180,64 @@ export const Svg = ({ className, svg }) => {
             throw new Error('Unexpected svg input');
     }
 };
+export const gameEls = [
+    {
+        name: 'Doctor',
+        component: <Svg svg='Doctor' />,
+        description: 'May protect one person from being killed each night. May not protect himself',
+    },
+    {
+        name: 'Sherrif',
+        component: <Svg svg='Sherrif' className={'player-role-pic'} />,
+        description: 'May investigate one person each night, knowing if they are mafia or not',
+    },
+    {
+        name: 'Detective',
+        component: <Svg svg='Detective' />,
+        description: 'May detect one person each night, learning their role.',
+    },
+    {
+        name: 'Vigilante',
+        component: <Svg svg='Vigilante' />,
+        description:
+            'May kill one person each night but has 3 bullet limit. If the person they kill is a townie they will commit suicide the next day out of guilt',
+    },
+    {
+        name: 'Townie',
+        component: <Svg svg='Townie' />,
+        description: 'Regular town-aligned role with no special ability.',
+    },
+    {
+        name: 'Bodyguard',
+        component: <Svg svg='Bodyguard' />,
+        description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
+    },
+    {
+        name: 'Mermaid',
+        component: <Svg svg='Mermaid' />,
+        description: 'May choose one player to block them from using their ability',
+    },
+    {
+        name: 'Mafia',
+        component: <Svg svg='Mafia' />,
+        description: 'Regular mafia-aligned role. May kill one person each night. If godfather died, can be promoted to take their place',
+    },
+    {
+        name: 'Godfather',
+        component: <Svg svg='Godfather' />,
+        description: 'Head of the mafia. If detected, comes up as "Townie". During night, kill decision goes to you',
+    },
+    {
+        name: 'Goon',
+        component: <Svg svg='Goon' />,
+        description: 'Regular mafia-aligned role with no special ability.',
+    },
+    {
+        name: 'Escort',
+        component: <Svg svg='Escort' />,
+        description: 'May choose one player to block them from using their ability',
+    },
+];
 
 export const els = [
     {

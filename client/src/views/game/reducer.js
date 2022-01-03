@@ -9,14 +9,14 @@ export const initialState = {
     },
     gameProgress: {
         isRoleAssigned: false,
+        hasGameStarted: false,
         gamePhase: undefined,
         /** The amount of days that passed */
-        daysCount: 0,
+        dayCount: 0,
 
         /** Which player voted for which player */
         lynchVotes: [],
     },
-
     /** Other players */
     players: [],
     /** Which player was selected to perfrom an action on */
@@ -52,9 +52,36 @@ export const reducer = (state = initialState, action) => {
                 gameProgress: {
                     ...state.gameProgress,
                     isRoleAssigned: true,
-                    gamePhase: state.gameProgress.gamePhase ? state.gameProgress.gamePhase : 'day',
                 },
             };
+
+        case 'SET_GAME_PROGRESS':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    ...action.payload,
+                },
+            };
+
+        case 'SET_DAY_COUNT':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    dayCount: action.payload,
+                },
+            };
+
+        case 'TRANSITION_TO':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    gamePhase: action.payload,
+                },
+            };
+
         default:
             return state;
     }
