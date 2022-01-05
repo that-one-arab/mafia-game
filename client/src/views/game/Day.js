@@ -21,30 +21,19 @@ function useTimer({ timer, setTimer }) {
     }, 1000);
 }
 
-const initialPlayers = [
-    {
-        playerID: '',
-        playerName: '',
-        playerAlive: true,
-        playerDisconnected: false,
-        amountOfVotes: 0,
-    },
-];
-
 export default function Day({ state, dispatch, socket }) {
     const lobbyCode = window.sessionStorage.getItem('global-lobbycode');
 
-    const [players, setPlayers] = useState([]);
     const [timer, setTimer] = useState(undefined);
     const [voteStart, setVoteStart] = useState(false);
     const [voteFinished, setVoteFinished] = useState(false);
     const [votes, setVotes] = useState(state.players.map((p) => ({ playerID: p.playerID, voters: [] })));
     const [lynchResult, setLynchResult] = useState(undefined);
+    const [dayResult, setDayResult] = useState(undefined);
 
     useTimer({ timer, setTimer });
 
     useEffect(() => {
-        setPlayers(state.players);
         socket.emit('moved-to', 'day', lobbyCode, state.myPlayer.playerID);
     }, [socket, lobbyCode, state.players, state.myPlayer.playerID]);
 
@@ -52,7 +41,7 @@ export default function Day({ state, dispatch, socket }) {
         socket.on('all-players-in-room', (room) => {
             if (room === 'day') {
                 console.log('starting timer!');
-                setTimer(30);
+                setTimer(10);
             }
         });
 
@@ -125,6 +114,7 @@ export default function Day({ state, dispatch, socket }) {
 
     return (
         <div>
+            {dayResult && <h1>{dayResult}</h1>}
             {lynchResult && (
                 <h1 style={{ color: lynchResult.team === 'mafia' ? 'red' : 'green' }}>
                     {' '}

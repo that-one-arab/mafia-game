@@ -82,6 +82,16 @@ export const reducer = (state = initialState, action) => {
                 },
             };
 
+        case 'SET_GAME_PROPS':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    ...action.payload.gameProgress,
+                },
+                players: action.payload.players,
+            };
+
         default:
             return state;
     }

@@ -215,6 +215,9 @@ function assignRoles(teams) {
     }
 
     /** */
+    function initiateRoleActionCount(seq) {}
+
+    /** */
     function getMafiaTeamRoles(mafiaTeam) {
         let rolesSequence = generateRoleSequence(mafiaRoles, mafiaTeam.length);
 
@@ -224,6 +227,7 @@ function assignRoles(teams) {
             ...player,
             playerRole: rolesSequence[i].name,
             playerTeam: rolesSequence[i].team,
+            actionCount: rolesSequence[i].actionCount,
         }));
     }
 
@@ -237,6 +241,7 @@ function assignRoles(teams) {
             ...player,
             playerRole: rolesSequence[i].name,
             playerTeam: rolesSequence[i].team,
+            actionCount: rolesSequence[i].actionCount,
         }));
     }
 
@@ -255,7 +260,8 @@ const townRoles = [
         description: 'May protect one person from being killed each night. May not protect himself',
         frequency: 2,
         unique: false,
-        required: true,
+        required: false,
+        actionCount: 'NONE',
     },
     {
         name: 'Sherrif',
@@ -263,7 +269,8 @@ const townRoles = [
         description: 'May investigate one person each night, knowing if they are mafia or not',
         frequency: 2,
         unique: false,
-        required: true,
+        required: false,
+        actionCount: 'NONE',
     },
     {
         name: 'Detective',
@@ -272,6 +279,7 @@ const townRoles = [
         frequency: 2,
         unique: false,
         required: true,
+        actionCount: 'NONE',
     },
     {
         name: 'Vigilante',
@@ -281,6 +289,7 @@ const townRoles = [
         frequency: 2,
         unique: false,
         required: false,
+        actionCount: 2,
     },
     {
         name: 'Townie',
@@ -289,14 +298,16 @@ const townRoles = [
         frequency: 9,
         unique: false,
         required: false,
+        actionCount: 'NONE',
     },
     {
         name: 'Bodyguard',
         team: TOWN,
         description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
-        frequency: 2,
+        frequency: 9,
         unique: false,
         required: false,
+        actionCount: 2,
     },
     {
         name: 'Mermaid',
@@ -305,6 +316,7 @@ const townRoles = [
         frequency: 2,
         unique: false,
         required: false,
+        actionCount: 'NONE',
     },
 ];
 
@@ -316,6 +328,7 @@ const mafiaRoles = [
         frequency: 3,
         unique: false,
         required: true,
+        actionCount: 'NONE',
     },
     {
         name: 'Godfather',
@@ -324,6 +337,7 @@ const mafiaRoles = [
         frequency: 9,
         unique: true,
         required: true,
+        actionCount: 'NONE',
     },
     {
         name: 'Goon',
@@ -332,6 +346,7 @@ const mafiaRoles = [
         frequency: 8,
         unique: false,
         required: false,
+        actionCount: 'NONE',
     },
     {
         name: 'Escort',
@@ -340,6 +355,7 @@ const mafiaRoles = [
         frequency: 2.5,
         unique: false,
         required: false,
+        actionCount: 'NONE',
     },
 ];
 

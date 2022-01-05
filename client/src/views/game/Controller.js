@@ -19,8 +19,8 @@ function Controller({ socket, state, dispatch }) {
     const { playersAmount } = JSON.parse(window.sessionStorage.getItem('global-gameoptions'));
     const lobbyCode = window.sessionStorage.getItem('global-lobbycode');
 
-    console.log('My Player global: ', myPlayer);
-    console.log('Local State: ', state);
+    // console.log('My Player global: ', myPlayer);
+    // console.log('Local State: ', state);
 
     /** Fired once. attempts to join a player to a room, or if room doesnt exist; create and join a room */
     useEffect(() => {
@@ -43,33 +43,35 @@ function Controller({ socket, state, dispatch }) {
 
     useEffect(() => {
         if (state.gameProgress.isRoleAssigned) {
-            socket.emit('get-game-props', lobbyCode, (res) => {
+            socket.emit('get-game-props', lobbyCode, state.myPlayer.playerID, (res) => {
                 console.log('get-game-props :', res);
                 dispatch({
-                    type: 'SET_GAME_PROGRESS',
+                    type: 'SET_GAME_PROPS',
                     payload: {
-                        ...res.props,
-                        isRoleAssigned: res.props.areRolesAssigned,
+                        gameProgress: {
+                            ...res.props.gameProgress,
+                            isRoleAssigned: res.props.gameProgress.areRolesAssigned,
+                        },
+                        players: res.props.players,
                     },
                 });
             });
         }
-    }, [socket, lobbyCode, state.gameProgress.isRoleAssigned, dispatch]);
+    }, [socket, lobbyCode, state.gameProgress.isRoleAssigned, state.myPlayer.playerID, dispatch]);
 
     /** Updates status of current players */
     useEffect(() => {
         socket.on('game-players', (res) => {
-            console.log('GAME-PLAYERS :', res);
-
             dispatch({ type: 'SET_PLAYERS', payload: res.players });
         });
-    }, [socket, dispatch]);
+    }, [socket, dispatch, state.gameProgress.isRoleAssigned]);
 
     /** Fires the verify-room event, only if client is room owner. Server validates the room and it's players then
      * decides whether to respond with 'assigned-role' event or not */
     useEffect(() => {
         if (myPlayer.isOwner && !state.gameProgress.isRoleAssigned) {
             console.log('the player is the OWNER');
+            console.log('players :', state.players);
             if (playersAmount === state.players.length) {
                 console.log('Players FULL, emitting!');
                 socket.emit('verify-room', lobbyCode, myPlayer.playerID);
@@ -130,6 +132,7 @@ export default function ControllerWrapper() {
     if (socket)
         return (
             <div>
+                <button onClick={() => console.log(state.myPlayer.playerTeam)}>LOG STATE</button>
                 <Controller socket={socket} dispatch={dispatch} state={state} />
             </div>
         );
