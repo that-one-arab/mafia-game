@@ -63,7 +63,7 @@ export const TownieSvg = ({ className }) => (
     </svg>
 );
 
-export const BodyguardSvg = ({ className }) => (
+export const BrawlerSvg = ({ className }) => (
     <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' className={className}>
         <path d='M0 0h512v512H0z' fill='#000' fillOpacity='1'></path>
         <g transform='translate(0,0)'>
@@ -158,8 +158,8 @@ export const Svg = ({ className, svg }) => {
         case 'Townie':
             return <TownieSvg className={className} />;
 
-        case 'Bodyguard':
-            return <BodyguardSvg className={className} />;
+        case 'Brawler':
+            return <BrawlerSvg className={className} />;
 
         case 'Mermaid':
             return <MermaidSvg className={className} />;
@@ -189,18 +189,17 @@ export const gameEls = [
     {
         name: 'Sherrif',
         component: <Svg svg='Sherrif' className={'player-role-pic'} />,
-        description: 'May investigate one person each night, knowing if they are mafia or not',
+        description: 'May detect one person each night, knowing if they are mafia or not',
     },
     {
         name: 'Detective',
         component: <Svg svg='Detective' />,
-        description: 'May detect one person each night, learning their role.',
+        description: 'May investigate one person each night, learning their role.',
     },
     {
         name: 'Vigilante',
         component: <Svg svg='Vigilante' />,
-        description:
-            'May kill one person each night but has 3 bullet limit. If the person they kill is a townie they will commit suicide the next day out of guilt',
+        description: 'May kill one person each night but has 2 bullet limit.',
     },
     {
         name: 'Townie',
@@ -208,8 +207,8 @@ export const gameEls = [
         description: 'Regular town-aligned role with no special ability.',
     },
     {
-        name: 'Bodyguard',
-        component: <Svg svg='Bodyguard' />,
+        name: 'Brawler',
+        component: <Svg svg='Brawler' />,
         description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
     },
     {
@@ -248,18 +247,17 @@ export const els = [
     {
         name: 'Sherrif',
         component: <Svg className={'svg slide-img'} svg='Sherrif' />,
-        description: 'May investigate one person each night, knowing if they are mafia or not',
+        description: 'May detect one person each night, knowing if they are mafia or not',
     },
     {
         name: 'Detective',
         component: <Svg className={'svg slide-img'} svg='Detective' />,
-        description: 'May detect one person each night, learning their role.',
+        description: 'May investigate one person each night, learning their role.',
     },
     {
         name: 'Vigilante',
         component: <Svg className={'svg slide-img'} svg='Vigilante' />,
-        description:
-            'May kill one person each night but has 3 bullet limit. If the person they kill is a townie they will commit suicide the next day out of guilt',
+        description: 'May kill one person each night but has 2 bullet limit.',
     },
     {
         name: 'Townie',
@@ -267,8 +265,8 @@ export const els = [
         description: 'Regular town-aligned role with no special ability.',
     },
     {
-        name: 'Bodyguard',
-        component: <Svg className={'svg slide-img'} svg='Bodyguard' />,
+        name: 'Brawler',
+        component: <Svg className={'svg slide-img'} svg='Brawler' />,
         description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
     },
     {

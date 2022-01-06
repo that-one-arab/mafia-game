@@ -102,24 +102,6 @@ function shuffle(array) {
 }
 
 /** */
-function shuffle(array) {
-    let currentIndex = array.length;
-    let randomIndex;
-
-    // While there remain elements to shuffle...
-    while (currentIndex !== 0) {
-        // Pick a remaining element...
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-
-        // And swap it with the current element.
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-
-    return array;
-}
-
-/** */
 function assignTeams(players) {
     let mafiaTeam = [];
     let townTeam = [];
@@ -215,9 +197,6 @@ function assignRoles(teams) {
     }
 
     /** */
-    function initiateRoleActionCount(seq) {}
-
-    /** */
     function getMafiaTeamRoles(mafiaTeam) {
         let rolesSequence = generateRoleSequence(mafiaRoles, mafiaTeam.length);
 
@@ -260,7 +239,7 @@ const townRoles = [
         description: 'May protect one person from being killed each night. May not protect himself',
         frequency: 2,
         unique: false,
-        required: false,
+        required: true,
         actionCount: 'NONE',
     },
     {
@@ -269,7 +248,7 @@ const townRoles = [
         description: 'May investigate one person each night, knowing if they are mafia or not',
         frequency: 2,
         unique: false,
-        required: false,
+        required: true,
         actionCount: 'NONE',
     },
     {
@@ -301,10 +280,10 @@ const townRoles = [
         actionCount: 'NONE',
     },
     {
-        name: 'Bodyguard',
+        name: 'Brawler',
         team: TOWN,
         description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
-        frequency: 9,
+        frequency: 2,
         unique: false,
         required: false,
         actionCount: 2,
@@ -371,4 +350,4 @@ const assignPlayers = (players) => {
     return [...mafiaTeam, ...townTeam];
 };
 
-module.exports = { isEqual, assignPlayers };
+module.exports = { isEqual, assignPlayers, shuffle };

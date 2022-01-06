@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useInterval } from '../../hooks';
 import { gameEls } from '../../assets/svg';
 import { parseMafiaSelectButton, parseTownDisabled } from './helpers';
+import { ToastContainer, toast } from 'react-toastify';
+import { Toaster } from '../../components';
 
 function getRoleSvgAndDescription(playerRole) {
     const { component, description } = gameEls.find((el) => el.name === playerRole);
@@ -15,9 +17,97 @@ function useTimer({ timer, setTimer }) {
     }, 1000);
 }
 
-const resultTemplate = {
-    code: 'death | healed | killed | investigated | blocked',
-};
+function ActionResult({ actionResult }) {
+    useEffect(() => {
+        if (actionResult.results.length) {
+            actionResult.results.forEach((result) => {
+                switch (result.code) {
+                    case 'DEATH':
+                        toast.error('You have died!', {
+                            position: 'top-center',
+                            autoClose: 5000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'colored',
+                        });
+                        break;
+
+                    case 'DETECTIVE_RESULT':
+                        toast.info(`Your investigation result is: "${result.payload}"`, {
+                            position: 'top-center',
+                            autoClose: 5000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'colored',
+                        });
+                        break;
+
+                    case 'SHERRIF_RESULT':
+                        toast.info(
+                            () => (
+                                <div>
+                                    {' '}
+                                    <p>
+                                        Your investigation result is{' '}
+                                        <strong style={{ color: result.payload === 'MAFIA' ? 'red' : 'green' }}> {result.payload} </strong>
+                                    </p>{' '}
+                                </div>
+                            ),
+                            {
+                                position: 'top-center',
+                                autoClose: 5000,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true,
+                                draggable: true,
+                                progress: undefined,
+                                theme: 'colored',
+                            }
+                        );
+                        break;
+
+                    case 'KILLED':
+                        toast.error('You have successfully killed your target', {
+                            position: 'top-center',
+                            autoClose: 5000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'dark',
+                        });
+                        break;
+
+                    default:
+                        break;
+                }
+            });
+        }
+    }, [actionResult]);
+
+    return (
+        <div>
+            <ToastContainer
+                position='top-center'
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
+        </div>
+    );
+}
 
 /**
  * Once timer ends, STOP allowing players to choose actions
@@ -87,8 +177,8 @@ function TownUI({ state, actionStart, socket, lobbyCode }) {
 }
 
 /**
- * Display the other mafia players by highlighting their rows in red,
- * Display other mafia players selections
+ * Display the other mafia players by highlighting their rows in red, DONE
+ * Display other mafia players selections DONE
  * Once timer ends, STOP allowing players to choose actions
  * After that, display results of action
  * If player dies, do not display result of action, instead display DEATH
@@ -210,11 +300,10 @@ function MafiaUI({ state, actionStart, socket, lobbyCode }) {
     );
 }
 
-const parseDescription = (description, myPlayer) => {
+const actionCountHandler = (myPlayer) => {
     if (typeof myPlayer.actionCount === 'number') {
-        return `${description}\nRemaining actions: ${myPlayer.actionCount}`;
+        return `Remaining actions: ${myPlayer.actionCount}`;
     }
-    return description;
 };
 
 export default function Night({ socket, state, dispatch }) {
@@ -228,7 +317,6 @@ export default function Night({ socket, state, dispatch }) {
     const [actionResult, setActionResult] = useState(undefined);
 
     actionStart && console.log('actionStart :', actionStart);
-    actionFinished && console.log('actionFinished: ', actionFinished);
     actionResult && console.log('actionResult :', actionResult);
 
     useTimer({ timer, setTimer });
@@ -246,7 +334,7 @@ export default function Night({ socket, state, dispatch }) {
                     setTimeout(() => {
                         console.log('starting timer!');
                         setActionStart(true);
-                        setTimer(1000);
+                        setTimer(15);
                         r();
                     }, 3000)
                 );
@@ -257,15 +345,38 @@ export default function Night({ socket, state, dispatch }) {
     useEffect(() => {
         if (timer === 0 && state.myPlayer.isOwner) {
             console.log('player is owner, emitting action-finished with lobbyCode :', lobbyCode);
-            socket.emit('action-finised', lobbyCode);
+            socket.emit('action-finished', lobbyCode);
         }
     }, [socket, timer, state.myPlayer.isOwner, lobbyCode]);
 
     useEffect(() => {
-        socket.on('night-result', (result) => {
-            console.log('night-result :', result);
+        socket.on('action-stop', () => {
+            console.log('Setting actionStart to FALSE');
+            setActionStart(false);
         });
     }, [socket]);
+
+    useEffect(() => {
+        socket.on('action-result', async (result) => {
+            console.log('listened to action-result :', result);
+            setActionResult(result);
+
+            // if (state.myPlayer.isOwner) {
+            //     await new Promise((r) => {
+            //         setTimeout(() => {
+            //             socket.emit('transition-ready', lobbyCode, state.myPlayer.playerID);
+            //         }, 4000);
+            //     });
+            // }
+        });
+    }, [socket, state.myPlayer.isOwner, state.myPlayer.playerID, lobbyCode]);
+
+    useEffect(() => {
+        socket.on('transition-to', (to) => {
+            console.log('transitioning to: ', to);
+            dispatch({ type: 'TRANSITION_TO', payload: to });
+        });
+    }, [socket, dispatch]);
 
     const { component: Svg, description } = getRoleSvgAndDescription(state.myPlayer.playerRole);
 
@@ -276,7 +387,7 @@ export default function Night({ socket, state, dispatch }) {
                 <h3> {timer} s </h3>
             </div>
 
-            {actionResult && <h3> {actionResult.message} </h3>}
+            {actionResult && <ActionResult actionResult={actionResult} />}
 
             {state.myPlayer.playerTeam === 'MAFIA' ? (
                 <MafiaUI state={state} socket={socket} lobbyCode={lobbyCode} actionStart={actionStart} />
@@ -286,7 +397,8 @@ export default function Night({ socket, state, dispatch }) {
 
             <div className='row'>
                 <div className='col-6'>
-                    <p> {parseDescription(description, state.myPlayer)} </p>
+                    <p>{description}</p>
+                    <p> {actionCountHandler(state.myPlayer)} </p>
                 </div>
                 <div className='col-6'>
                     <div className=''>{Svg}</div>

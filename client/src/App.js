@@ -2,6 +2,8 @@ import './App.css';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { routes } from './routes';
 
+import 'react-toastify/dist/ReactToastify.css';
+
 function App() {
     return (
         <div>
@@ -15,14 +17,11 @@ function App() {
                                     path={route.path}
                                     exact={route.exact}
                                     name={route.name}
-                                    render={(props) => (
-                                        <route.component {...props} />
-                                    )}
+                                    render={(props) => <route.component {...props} />}
                                 />
                             )
                         );
                     })}
-                    {/* I dont think theres need to use redirect  <Redirect from="/" to="/dashboard" /> */}
                 </Switch>
             </BrowserRouter>
         </div>

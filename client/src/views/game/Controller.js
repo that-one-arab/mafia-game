@@ -55,6 +55,10 @@ function Controller({ socket, state, dispatch }) {
                         players: res.props.players,
                     },
                 });
+
+                const myPlayer = res.props.players.find((p) => p.playerID === state.myPlayer.playerID);
+
+                dispatch({ type: 'SET_PLAYER', payload: myPlayer });
             });
         }
     }, [socket, lobbyCode, state.gameProgress.isRoleAssigned, state.myPlayer.playerID, dispatch]);
