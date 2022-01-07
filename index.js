@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const path = require('path');
 const mongoose = require('mongoose');
 const express = require('express');
 const socketIO = require('socket.io');
@@ -12,8 +13,12 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', routes);
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 const connectToDB = async () => {
     const db = await new Promise((resolve, reject) => {
@@ -41,9 +46,7 @@ const initializeServer = async (port = undefined) => {
 
     const server = await new Promise((resolve, reject) => {
         try {
-            const serverr = app.listen(PORT, () =>
-                console.log(`Server is listening on port ${PORT}`)
-            );
+            const serverr = app.listen(PORT, () => console.log(`Server is listening on port ${PORT}`));
             resolve(serverr);
         } catch (error) {
             reject(error);
