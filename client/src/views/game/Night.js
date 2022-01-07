@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useInterval } from '../../hooks';
 import { gameEls } from '../../assets/svg';
 import { parseMafiaSelectButton, parseTownDisabled } from './helpers';
-import { ToastContainer, toast } from 'react-toastify';
-import { Toaster } from '../../components';
+import ActionResult from './ActionResult';
 
 function getRoleSvgAndDescription(playerRole) {
     const { component, description } = gameEls.find((el) => el.name === playerRole);
@@ -15,98 +14,6 @@ function useTimer({ timer, setTimer }) {
     useInterval(() => {
         timer && setTimer((prevVal) => prevVal - 1);
     }, 1000);
-}
-
-function ActionResult({ actionResult }) {
-    useEffect(() => {
-        if (actionResult.results.length) {
-            actionResult.results.forEach((result) => {
-                switch (result.code) {
-                    case 'DEATH':
-                        toast.error('You have died!', {
-                            position: 'top-center',
-                            autoClose: 5000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true,
-                            progress: undefined,
-                            theme: 'colored',
-                        });
-                        break;
-
-                    case 'DETECTIVE_RESULT':
-                        toast.info(`Your investigation result is: "${result.payload}"`, {
-                            position: 'top-center',
-                            autoClose: 5000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true,
-                            progress: undefined,
-                            theme: 'colored',
-                        });
-                        break;
-
-                    case 'SHERRIF_RESULT':
-                        toast.info(
-                            () => (
-                                <div>
-                                    {' '}
-                                    <p>
-                                        Your investigation result is{' '}
-                                        <strong style={{ color: result.payload === 'MAFIA' ? 'red' : 'green' }}> {result.payload} </strong>
-                                    </p>{' '}
-                                </div>
-                            ),
-                            {
-                                position: 'top-center',
-                                autoClose: 5000,
-                                hideProgressBar: false,
-                                closeOnClick: true,
-                                pauseOnHover: true,
-                                draggable: true,
-                                progress: undefined,
-                                theme: 'colored',
-                            }
-                        );
-                        break;
-
-                    case 'KILLED':
-                        toast.error('You have successfully killed your target', {
-                            position: 'top-center',
-                            autoClose: 5000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true,
-                            progress: undefined,
-                            theme: 'dark',
-                        });
-                        break;
-
-                    default:
-                        break;
-                }
-            });
-        }
-    }, [actionResult]);
-
-    return (
-        <div>
-            <ToastContainer
-                position='top-center'
-                autoClose={5000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-            />
-        </div>
-    );
 }
 
 /**
@@ -334,7 +241,7 @@ export default function Night({ socket, state, dispatch }) {
                     setTimeout(() => {
                         console.log('starting timer!');
                         setActionStart(true);
-                        setTimer(15);
+                        setTimer(35);
                         r();
                     }, 3000)
                 );
@@ -361,13 +268,13 @@ export default function Night({ socket, state, dispatch }) {
             console.log('listened to action-result :', result);
             setActionResult(result);
 
-            // if (state.myPlayer.isOwner) {
-            //     await new Promise((r) => {
-            //         setTimeout(() => {
-            //             socket.emit('transition-ready', lobbyCode, state.myPlayer.playerID);
-            //         }, 4000);
-            //     });
-            // }
+            if (state.myPlayer.isOwner) {
+                await new Promise((r) => {
+                    setTimeout(() => {
+                        socket.emit('transition-ready', lobbyCode, state.myPlayer.playerID);
+                    }, 5000);
+                });
+            }
         });
     }, [socket, state.myPlayer.isOwner, state.myPlayer.playerID, lobbyCode]);
 

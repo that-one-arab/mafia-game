@@ -892,6 +892,7 @@ module.exports = (gameNps, socket) => {
             /** This target is protected */
             const TARGET_PROTECTED = 'TARGET_PROTECTED';
             const KILLED = 'KILLED';
+            const VIG_KILLED = 'VIG_KILLED';
             const BLOCKED = 'BLOCKED';
             const MAF_GUNNER_BLOCKED = 'MAF_GUNNER_BLOCKED';
             const I_BLOCKED = 'I_BLOCKED';
@@ -952,7 +953,7 @@ module.exports = (gameNps, socket) => {
                                     });
                                 } else {
                                     modifyActionResult(player.playerID, {
-                                        code: KILLED,
+                                        code: VIG_KILLED,
                                         payload: player.actionLimit - 1,
                                     });
                                 }
@@ -1326,10 +1327,24 @@ module.exports = (gameNps, socket) => {
                 }
             });
 
-            console.log('actionResults after :', actionResults);
-
             actionResults.forEach((actionResult) => {
                 gameNps.to(actionResult.socketID).emit('action-result', actionResult);
+            });
+
+            actionResults.forEach((actionResult) => {
+                const resultCodes = actionResult.results.map((result) => result.code);
+
+                if (resultCodes.includes(DEATH)) {
+                    const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
+
+                    game[gameRoomIndex].players[playerIndex].playerAlive = false;
+                }
+
+                if (resultCodes.includes(VIG_KILLED) || resultCodes.includes(BRAWLER_GUARDED)) {
+                    const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
+
+                    game[gameRoomIndex].players[playerIndex].actionLimit = game[gameRoomIndex].players[playerIndex].actionLimit - 1;
+                }
             });
         }
     });

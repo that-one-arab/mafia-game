@@ -16,12 +16,12 @@ export default function Main() {
                 <div className='row justify-content-center'>
                     <div style={{ marginBottom: '20%' }}> </div>
                     <div className='col-lg-6'>
-                        <button className='button' onClick={() => history.push('/create-game')}>
+                        <button className='btnbox_btn--animation' onClick={() => history.push('/create-game')}>
                             Create Game
                         </button>
                     </div>
                     <div className='col-lg-6'>
-                        <button className='button' onClick={() => history.push('/join-game')}>
+                        <button className='btnbox_btn--animation' onClick={() => history.push('/join-game')}>
                             Join Game
                         </button>
                     </div>

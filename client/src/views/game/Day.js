@@ -53,12 +53,30 @@ export default function Day({ state, dispatch, socket }) {
 
     useEffect(() => {
         if (!voteStart && timer === 0 && state.gameProgress.dayCount !== 1) {
-            setVoteStart(true);
-            setTimer(15);
+            socket.emit('get-game-props', lobbyCode, state.myPlayer.playerID, (res) => {
+                console.log('get-game-props :', res);
+                dispatch({
+                    type: 'SET_GAME_PROPS',
+                    payload: {
+                        gameProgress: {
+                            ...res.props.gameProgress,
+                            isRoleAssigned: res.props.gameProgress.areRolesAssigned,
+                        },
+                        players: res.props.players,
+                    },
+                });
+
+                const myPlayer = res.props.players.find((p) => p.playerID === state.myPlayer.playerID);
+
+                dispatch({ type: 'SET_PLAYER', payload: myPlayer });
+
+                setVoteStart(true);
+                setTimer(15);
+            });
         } else if (!voteStart && timer === 0 && state.gameProgress.dayCount === 1) {
             setVoteFinished(true);
         }
-    }, [voteStart, timer, state.gameProgress.dayCount, dispatch]);
+    }, [voteStart, socket, timer, state.gameProgress.dayCount, dispatch, lobbyCode, state.myPlayer.playerID]);
 
     useEffect(() => {
         if (voteStart && !voteFinished && timer === 0 && state.myPlayer.isOwner) {
