@@ -17,15 +17,13 @@ export const initialState = {
         /** Which player voted for which player */
         lynchVotes: [],
     },
+    gameEnded: undefined,
     /** Other players */
     players: [],
     /** Which player was selected to perfrom an action on */
     playerActionOn: 'PLAYER_ID',
     /** If the player is of team mafia, this would be populated */
     playerMafiaTeam: [],
-
-    /** Results of the game (showing the players and their roles and who won) */
-    gameResults: [],
 };
 
 export const reducer = (state = initialState, action) => {
@@ -90,6 +88,13 @@ export const reducer = (state = initialState, action) => {
                     ...action.payload.gameProgress,
                 },
                 players: action.payload.players,
+            };
+
+        case 'GAME_ENDED':
+            console.log('reducer gameEnded, payload: ', action.payload);
+            return {
+                ...state,
+                gameEnded: action.payload,
             };
 
         default:

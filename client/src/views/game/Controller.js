@@ -2,16 +2,21 @@ import { useState, useEffect, useReducer } from 'react';
 import { useDispatch } from 'react-redux';
 import io from 'socket.io-client';
 import Day from './Day';
+import GameResult from './GameResult';
 import Night from './Night';
 import { initialState, reducer } from './reducer';
 import RoleAssignment from './RoleAssignment';
 import './style.css';
 
 function Renderer({ socket, state, dispatch }) {
+    console.log({ gameEnded: state.gameEnded });
     const { isRoleAssigned, hasGameStarted, gamePhase } = state.gameProgress;
-    if (isRoleAssigned && hasGameStarted && gamePhase === 'day') return <Day state={state} dispatch={dispatch} socket={socket} />;
-    if (isRoleAssigned && hasGameStarted && gamePhase === 'night') return <Night state={state} dispatch={dispatch} socket={socket} />;
-    else return <RoleAssignment state={state} dispatch={dispatch} socket={socket} />;
+    if (state.gameEnded) return <GameResult winnerTeam={state.gameEnded.winner} players={state.gameEnded.players} />;
+    else if (isRoleAssigned && hasGameStarted && gamePhase === 'day') {
+        return <Day state={state} dispatch={dispatch} socket={socket} />;
+    } else if (isRoleAssigned && hasGameStarted && gamePhase === 'night') {
+        return <Night state={state} dispatch={dispatch} socket={socket} />;
+    } else return <RoleAssignment state={state} dispatch={dispatch} socket={socket} />;
 }
 
 function Controller({ socket, state, dispatch }) {
@@ -67,17 +72,35 @@ function Controller({ socket, state, dispatch }) {
     useEffect(() => {
         socket.on('game-players', (res) => {
             dispatch({ type: 'SET_PLAYERS', payload: res.players });
+            const myPlayer = res.players.find((p) => p.playerID === state.myPlayer.playerID);
+            if (myPlayer) {
+                let playerDispatch = {};
+                for (const key in myPlayer) {
+                    if (Object.hasOwnProperty.call(myPlayer, key)) {
+                        if (typeof myPlayer[key] === 'boolean') {
+                            playerDispatch = {
+                                ...playerDispatch,
+                                [key]: myPlayer[key],
+                            };
+                        } else if (myPlayer[key]) {
+                            playerDispatch = {
+                                ...playerDispatch,
+                                [key]: myPlayer[key],
+                            };
+                        }
+                    }
+                }
+                delete playerDispatch.playerID;
+                dispatch({ type: 'SET_PLAYER', payload: playerDispatch });
+            }
         });
-    }, [socket, dispatch, state.gameProgress.isRoleAssigned]);
+    }, [socket, dispatch, state.myPlayer.playerID]);
 
     /** Fires the verify-room event, only if client is room owner. Server validates the room and it's players then
      * decides whether to respond with 'assigned-role' event or not */
     useEffect(() => {
         if (myPlayer.isOwner && !state.gameProgress.isRoleAssigned) {
-            console.log('the player is the OWNER');
-            console.log('players :', state.players);
             if (playersAmount === state.players.length) {
-                console.log('Players FULL, emitting!');
                 socket.emit('verify-room', lobbyCode, myPlayer.playerID);
             }
         }

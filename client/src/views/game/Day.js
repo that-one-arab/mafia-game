@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { gameEls } from '../../assets/svg';
 import { useInterval } from '../../hooks';
+import { ToastContainer, toast } from 'react-toastify';
 
 function getRoleSvgAndDescription(playerRole) {
     const { component, description } = gameEls.find((el) => el.name === playerRole);
@@ -24,36 +25,82 @@ function useTimer({ timer, setTimer }) {
 export default function Day({ state, dispatch, socket }) {
     const lobbyCode = window.sessionStorage.getItem('global-lobbycode');
 
+    const [movedToDayFired, setMovedToDayFired] = useState(false);
     const [timer, setTimer] = useState(undefined);
+    const [discussStart, setDiscussStart] = useState(false);
+    const [dayRes, setDayRes] = useState([]);
+    const [dayResFired, setDayResFired] = useState(false);
+
     const [voteStart, setVoteStart] = useState(false);
     const [voteFinished, setVoteFinished] = useState(false);
+    const [gameEnded, setGameEnded] = useState(undefined);
+    const [gameEndedFired, setGameEndedFired] = useState(false);
+
     const [votes, setVotes] = useState(state.players.map((p) => ({ playerID: p.playerID, voters: [] })));
+
     const [lynchResult, setLynchResult] = useState(undefined);
-    const [dayResult, setDayResult] = useState(undefined);
 
     useTimer({ timer, setTimer });
 
+    /** Fires once */
     useEffect(() => {
-        socket.emit('moved-to', 'day', lobbyCode, state.myPlayer.playerID);
-    }, [socket, lobbyCode, state.players, state.myPlayer.playerID]);
+        if (!movedToDayFired) {
+            socket.emit('moved-to', 'day', lobbyCode, state.myPlayer.playerID);
+            setMovedToDayFired(true);
+        }
+    }, [socket, lobbyCode, state.players, state.myPlayer.playerID, movedToDayFired]);
+
+    useEffect(() => {
+        if (!dayResFired && dayRes.length) {
+            console.log('!dayResFired && dayRes.length. Begining setTimeout after 4s...');
+            setDayResFired(true);
+            setTimeout(async () => {
+                console.log('setTimeout started...');
+                const dayResUniq = [...new Map(dayRes.map((v) => [v.id, v])).values()];
+                console.log('dayResUniq :', dayResUniq);
+                dayResUniq.forEach((result) => {
+                    toast.error(
+                        () => (
+                            <div>
+                                {' '}
+                                <p>
+                                    <strong> {result.playerName + ' '}</strong>
+                                    Has died. They were{' '}
+                                    <strong style={{ color: result.playerTeam === 'MAFIA' ? 'red' : 'green' }}>
+                                        {' '}
+                                        {result.playerRole}{' '}
+                                    </strong>
+                                </p>{' '}
+                            </div>
+                        ),
+                        {
+                            position: 'top-center',
+                            autoClose: 5000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'colored',
+                        }
+                    );
+                });
+
+                await new Promise((r) => {
+                    setTimeout(() => {
+                        console.log('setting discussStart to true');
+                        setDiscussStart(true);
+                        r();
+                    }, 4000);
+                });
+            }, 2000);
+        }
+    }, [dayRes, dayResFired]);
 
     useEffect(() => {
         socket.on('all-players-in-room', (room) => {
-            if (room === 'day') {
-                console.log('starting timer!');
-                setTimer(10);
-            }
-        });
-
-        socket.on('day-count', (count) => {
-            console.log('day-count :', count);
-            dispatch({ type: 'SET_DAY_COUNT', payload: count });
-        });
-    }, [socket, dispatch]);
-
-    useEffect(() => {
-        if (!voteStart && timer === 0 && state.gameProgress.dayCount !== 1) {
-            socket.emit('get-game-props', lobbyCode, state.myPlayer.playerID, (res) => {
+            console.log('all-players-in-room');
+            socket.emit('get-game-props', lobbyCode, state.myPlayer.playerID, async (res) => {
                 console.log('get-game-props :', res);
                 dispatch({
                     type: 'SET_GAME_PROPS',
@@ -67,43 +114,36 @@ export default function Day({ state, dispatch, socket }) {
                 });
 
                 const myPlayer = res.props.players.find((p) => p.playerID === state.myPlayer.playerID);
-
                 dispatch({ type: 'SET_PLAYER', payload: myPlayer });
+                if (room === 'day') {
+                    if (res.props.gameProgress.dayResult.length) {
+                        console.log('day-result :', res.props.gameProgress.dayResult);
+                        setDayRes(res.props.gameProgress.dayResult);
+                    } else {
+                        setDiscussStart(true);
+                    }
 
-                setVoteStart(true);
-                setTimer(15);
+                    if (res.props.gameProgress.dayCount !== 1) {
+                        setTimer(60);
+                    } else {
+                        setTimer(10);
+                    }
+                }
             });
-        } else if (!voteStart && timer === 0 && state.gameProgress.dayCount === 1) {
-            setVoteFinished(true);
-        }
-    }, [voteStart, socket, timer, state.gameProgress.dayCount, dispatch, lobbyCode, state.myPlayer.playerID]);
-
-    useEffect(() => {
-        if (voteStart && !voteFinished && timer === 0 && state.myPlayer.isOwner) {
-            socket.emit('vote-finished', lobbyCode);
-        }
-    }, [socket, voteStart, voteFinished, timer, state.myPlayer.isOwner, lobbyCode]);
-
-    useEffect(() => {
-        socket.on('vote-result', async (result) => {
-            if (result) {
-                setLynchResult({
-                    playerName: result.playerName,
-                    team: result.playerTeam,
-                    role: result.playerRole,
-                });
-
-                await new Promise((r) => {
-                    setTimeout(() => {
-                        setVoteFinished(true);
-                        r();
-                    }, 4000);
-                });
-            } else {
-                setVoteFinished(true);
-            }
         });
-    }, [socket]);
+    }, [socket, dispatch, discussStart, state.gameProgress.dayCount, state.myPlayer.playerID, lobbyCode]);
+
+    /** Initial discuss timer ended,  */
+    useEffect(() => {
+        if (timer === 0 && !voteStart) {
+            if (state.gameProgress.dayCount === 1) {
+                setVoteFinished(true);
+            } else {
+                setTimer(20);
+                setVoteStart(true);
+            }
+        }
+    }, [timer, voteStart, state.gameProgress.dayCount]);
 
     useEffect(() => {
         if (voteFinished && state.myPlayer.isOwner) {
@@ -118,25 +158,125 @@ export default function Day({ state, dispatch, socket }) {
     }, [socket, dispatch]);
 
     useEffect(() => {
-        socket.on('vote-start', () => {
-            setVoteStart(true);
-        });
-
         socket.on('votes', (votes) => {
-            console.log('listened to votes :', votes);
             setVotes(votes);
         });
     }, [socket]);
 
+    useEffect(() => {
+        if (voteStart && !voteFinished && timer === 0 && state.myPlayer.isOwner) {
+            socket.emit('vote-finished', lobbyCode);
+        }
+    }, [socket, voteStart, voteFinished, timer, state.myPlayer.isOwner, lobbyCode]);
+
+    useEffect(() => {
+        socket.on('vote-result', async (player) => {
+            console.log('vote-result :', player);
+            if (player) {
+                console.log('setting lynchResult to player', player);
+                setLynchResult(player);
+
+                await new Promise((r) => {
+                    setTimeout(() => {
+                        console.log('setting voteFinished to true');
+                        setVoteFinished(true);
+                        r();
+                    }, 4000);
+                });
+            } else {
+                setVoteFinished(true);
+            }
+        });
+    }, [socket]);
+
+    useEffect(() => {
+        if (lynchResult) {
+            console.log('lynchResult is present, rendering a toast...');
+            toast.error(
+                () => (
+                    <div>
+                        {' '}
+                        <p>
+                            <strong> {lynchResult.playerName + ' '}</strong>
+                            Has been hanged. They were{' '}
+                            <strong style={{ color: lynchResult.playerTeam === 'MAFIA' ? 'red' : 'green' }}>
+                                {' '}
+                                {lynchResult.playerRole}{' '}
+                            </strong>
+                        </p>{' '}
+                    </div>
+                ),
+                {
+                    position: 'top-center',
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'colored',
+                }
+            );
+        }
+    }, [lynchResult]);
+
     const { component: Svg, description } = getRoleSvgAndDescription(state.myPlayer.playerRole);
+
+    useEffect(() => {
+        socket.on('game-ended', (winner, players) => {
+            setGameEnded({ winner, players });
+        });
+    }, [socket, dispatch]);
+
+    useEffect(() => {
+        if (!gameEndedFired && gameEnded) {
+            setGameEndedFired(true);
+            setTimeout(async () => {
+                toast.success('The game has ended!', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'colored',
+                });
+
+                setTimeout(() => {
+                    console.log('dispatching GAME_ENDED with value :', gameEnded);
+                    dispatch({ type: 'GAME_ENDED', payload: gameEnded });
+                }, 3000);
+            }, 2000);
+        }
+    }, [gameEndedFired, gameEnded, dispatch]);
+
+    const voteDisabledHandler = (player) => {
+        if (!state.myPlayer.playerAlive) return true;
+
+        if (!player.playerAlive) return true;
+
+        if (state.myPlayer.playerID === player.playerID) return true;
+        return false;
+    };
 
     return (
         <div>
-            {dayResult && <h1>{dayResult}</h1>}
+            <ToastContainer
+                position='top-center'
+                autoClose={7000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
             {lynchResult && (
-                <h1 style={{ color: lynchResult.team === 'mafia' ? 'red' : 'green' }}>
+                <h1 style={{ color: lynchResult.playerTeam === 'MAFIA' ? 'red' : 'green' }}>
                     {' '}
-                    {lynchResult.playerName} was a {lynchResult.role}
+                    {lynchResult.playerName} was a {lynchResult.playerRole}
                 </h1>
             )}
             <div className='header'>
@@ -158,24 +298,19 @@ export default function Day({ state, dispatch, socket }) {
                                   <tr key={p.playerID}>
                                       <th scope='col'>#{i + 1}</th>
                                       <th scope='col'>{p.playerName} </th>
-
-                                      {voteStart && (
-                                          <>
-                                              <th>
-                                                  {' '}
-                                                  <button
-                                                      onClick={() =>
-                                                          socket.volatile.emit('vote-for', lobbyCode, state.myPlayer.playerID, p.playerID)
-                                                      }
-                                                  >
-                                                      Vote
-                                                  </button>{' '}
-                                              </th>
-                                              <th>
-                                                  <p>{votes.find((vote) => vote.playerID === p.playerID).voters.length}</p>
-                                              </th>
-                                          </>
-                                      )}
+                                      <th>
+                                          {voteStart && !voteFinished && (
+                                              <button
+                                                  disabled={voteDisabledHandler(p)}
+                                                  onClick={() =>
+                                                      socket.volatile.emit('vote-for', lobbyCode, state.myPlayer.playerID, p.playerID)
+                                                  }
+                                              >
+                                                  Vote
+                                              </button>
+                                          )}
+                                      </th>
+                                      <th>{voteStart && <p>{votes.find((vote) => vote.playerID === p.playerID).voters.length}</p>}</th>
                                   </tr>
                               ))
                             : null}

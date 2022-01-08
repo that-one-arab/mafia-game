@@ -18,7 +18,7 @@ const game = [
                 playerDisconnected: false,
                 playerIn: undefined,
                 actionOn: '',
-                actionLimit: 0,
+                actionCount: 0,
             },
         ],
         gameConfig: {
@@ -35,6 +35,7 @@ const game = [
                 },
             ],
             dayCount: 0,
+            dayResult: [],
         },
     },
 ];
@@ -136,7 +137,7 @@ const addPlayer = (gameCode, socketID, playerID, playerName) => {
             playerDisconnected: false,
             playerIn: undefined,
             actionOn: '',
-            actionLimit: 0,
+            actionCount: 0,
         },
     ];
 };
@@ -156,7 +157,7 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
                 playerAlive: true,
                 playerDisconnected: false,
                 actionOn: '',
-                actionLimit: 0,
+                actionCount: 0,
             },
         ],
         gameConfig: {
@@ -169,6 +170,7 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
             currentVotes: [],
             currentActions: [],
             dayCount: 0,
+            dayResult: [],
         },
     });
 };
@@ -221,6 +223,7 @@ const parseTownPlayers = (players, playerID) => {
         playerDisconnected: p.playerDisconnected,
         playerIn: p.playerIn,
         actionOn: p.playerID === playerID ? p.actionOn : '',
+        actionCount: p.playerID === playerID ? p.actionCount : '',
     }));
 };
 
@@ -366,6 +369,20 @@ function mafiaSafeParsePlayers(players) {
     });
 }
 
+/** */
+function verifyWinningCondition(players) {
+    const mafPlayers = players.filter((p) => p.playerTeam === 'MAFIA');
+    const townPlayers = players.filter((p) => p.playerTeam === 'TOWN');
+
+    if (mafPlayers.every((p) => p.playerAlive === false)) {
+        return 'MAFIA';
+    } else if (townPlayers.every((p) => p.playerAlive === false)) {
+        return 'TOWN';
+    }
+
+    return null;
+}
+
 module.exports = (gameNps, socket) => {
     socket.on('join-game', (gameCode, playerID, playerName, responseCb) => {
         try {
@@ -431,6 +448,7 @@ module.exports = (gameNps, socket) => {
 
     gameNps.adapter.on('leave-room', (room, id) => {
         try {
+            console.log('a player left the socket, id :', id);
             const { found, gameRoomIndex, playerIndex } = findSocketIDIndexInRooms(id);
 
             if (!found)
@@ -441,6 +459,22 @@ module.exports = (gameNps, socket) => {
                 );
 
             disconnectPlayer(gameRoomIndex, playerIndex);
+
+            if (game[gameRoomIndex].players[playerIndex].isOwner) {
+                console.log('the player leaving was the owner');
+                game[gameRoomIndex].players[playerIndex].isOwner = false;
+
+                const newOwner = game[gameRoomIndex].players.filter(
+                    (player) => player.isOwner === false && player.playerDisconnected === false
+                )[0];
+                console.log('new room owner :', newOwner);
+
+                const newOwnerIndex = game[gameRoomIndex].players.findIndex((player) => player.playerID === newOwner.playerID);
+
+                game[gameRoomIndex].players[newOwnerIndex].isOwner = true;
+            }
+
+            console.log('modifed players :', game[gameRoomIndex].players);
 
             const players = game[gameRoomIndex].players;
 
@@ -535,6 +569,11 @@ module.exports = (gameNps, socket) => {
                     players: player.playerTeam === 'MAFIA' ? mafiaParsedPlayers : townParsedPlayers,
                 },
             });
+
+            const winner = verifyWinningCondition(players);
+            if (winner) {
+                gameNps.to(gameCode).emit('game-ended', winner, players);
+            }
         }
     });
 
@@ -553,6 +592,7 @@ module.exports = (gameNps, socket) => {
                     const roomFilteredPlayers = players.filter((player) => player.playerIn === room && !player.playerDisconnected);
 
                     if (playersAmount === roomFilteredPlayers.length) {
+                        game[gameRoomIndex].gameProgress.gamePhase = room;
                         gameNps.to(gameCode).emit('all-players-in-room', room);
 
                         if (room === 'day') {
@@ -584,6 +624,7 @@ module.exports = (gameNps, socket) => {
     });
 
     socket.on('vote-finished', (gameCode) => {
+        /** After votes are finished, call initializeVotes() function to clear all votes */
         const gameRoomIndex = indexOfGameRoom(gameCode);
 
         if (gameRoomIndex !== -1) {
@@ -595,14 +636,14 @@ module.exports = (gameNps, socket) => {
                 const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, voteRes.playerID);
                 game[gameRoomIndex].players[playerIndex].playerAlive = false;
 
-                gameNps.to(gameCode).emit('game-players', {
-                    message: 'Player ID' + playerID + ' Has died',
-                    players: safeParsePlayers(game[gameRoomIndex].players),
-                });
-
                 gameNps.to(gameCode).emit('vote-result', voteRes);
             } else {
                 gameNps.to(gameCode).emit('vote-result', 0);
+            }
+
+            const winner = verifyWinningCondition(game[gameRoomIndex].players);
+            if (winner) {
+                gameNps.to(gameCode).emit('game-ended', winner, game[gameRoomIndex].players);
             }
         }
     });
@@ -716,40 +757,56 @@ module.exports = (gameNps, socket) => {
     }
 
     /** */
-    function didGodfatherTarget(players) {
+    function findGodfather(players) {
+        return players.find((p) => p.playerRole === 'Godfather');
+    }
+
+    /** */
+    function didVigTarget(players, targetID) {
+        let isVigRoleblocked = false;
+        let hasVigTargeted = false;
+
         for (let i = 0; i < players.length; i++) {
             const player = players[i];
-
-            if (player.playerRole === 'Godfather' && player.actionOn) {
-                return player.actionOn;
+            if (player.playerRole === 'Vigilante' && player.actionOn === targetID) {
+                hasVigTargeted = true;
+                for (let j = 0; j < players.length; j++) {
+                    const p = players[j];
+                    if (p.playerRole === 'Mermaid' || p.playerRole === 'Escort') {
+                        if (p.actionOn === player.playerID) {
+                            isVigRoleblocked = true;
+                        }
+                    }
+                }
             }
         }
 
-        return null;
+        if (hasVigTargeted && !isVigRoleblocked) return true;
+        return false;
     }
 
-    /** */
-    function didVigTarget(players) {
-        for (let i = 0; i < players.length; i++) {
-            const player = players[i];
+    /**
+     * OBJECTIVE: Find if player has been targeted by any entity
+     * If player has been targeted, find if the targeter has been role blocked
+     * If targeted and targeter is not role blocked, return true
+     */
+    function isPlayerTargeted(players, playerID, mafGunner) {
+        let isMafGunnerRoleblocked = false;
 
-            if (player.playerRole === 'Vigilante' && player.actionOn) return player.actionOn;
+        const godfather = findGodfather(players);
+        if (godfather && godfather.actionOn === playerID) {
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i];
+
+                if (player.playerRole === 'Mermaid' || player.playerRole === 'Escort') {
+                    if (player.actionOn === mafGunner.playerID) isMafGunnerRoleblocked = true;
+                }
+            }
+
+            if (!isMafGunnerRoleblocked) return true;
         }
 
-        return null;
-    }
-
-    /** */
-    function isPlayerTargeted(players, playerID) {
-        const godfatherTarget = didGodfatherTarget(players);
-        if (godfatherTarget && godfatherTarget === playerID) {
-            return true;
-        }
-
-        const vigTarget = didVigTarget(players);
-        if (vigTarget && vigTarget === playerID) {
-            return true;
-        }
+        if (didVigTarget(players, playerID)) return true;
 
         const mafiaVotes = [];
 
@@ -771,41 +828,26 @@ module.exports = (gameNps, socket) => {
             const highestVotes = mafiaVotes.sort((a, b) => b.votes - a.votes)[0];
             console.log({ highestVotes });
 
-            if (highestVotes.player === playerID) return true;
-        }
-        return false;
-    }
+            if (highestVotes.player === playerID) {
+                for (let i = 0; i < players.length; i++) {
+                    const player = players[i];
 
-    /** */
-    function isPlayerTargetedByMaf(players, playerID) {
-        const godfatherTarget = didGodfatherTarget(players);
-        if (godfatherTarget && godfatherTarget === playerID) {
-            return true;
-        }
-
-        const mafiaVotes = [];
-
-        for (let i = 0; i < players.length; i++) {
-            const player = players[i];
-            if (player.playerRole === 'Mafia' && player.actionOn) {
-                if (mafiaVotes.map((p) => p.playerID).includes(player.actionOn)) {
-                    const index = mafiaVotes.findIndex((p) => p.playerID === player.actionOn);
-                    mafiaVotes[index].votes = mafiaVotes[index].votes + 1;
-                } else {
-                    mafiaVotes.push({ votes: 1, player: player.actionOn });
+                    if (player.playerRole === 'Mermaid' || player.playerRole === 'Escort') {
+                        if (player.actionOn === mafGunner.playerID) isMafGunnerRoleblocked = true;
+                    }
                 }
+
+                if (!isMafGunnerRoleblocked) return true;
             }
         }
 
-        const highestVotes = mafiaVotes.sort((a, b) => b.votes - a.votes)[0];
-        if (highestVotes.player === playerID) return true;
         return false;
     }
 
     /** */
     function parseMafiaTarget(players) {
-        const godfatherTarget = didGodfatherTarget(players);
-        if (godfatherTarget) return players.find((player) => player.playerID === godfatherTarget);
+        const godfather = findGodfather(players);
+        if (godfather && godfather.actionOn) return players.find((player) => player.playerID === godfather.actionOn);
 
         const mafiaVotes = [];
 
@@ -859,6 +901,8 @@ module.exports = (gameNps, socket) => {
     socket.on('action-finished', (gameCode) => {
         const gameRoomIndex = indexOfGameRoom(gameCode);
         if (gameRoomIndex !== -1) {
+            game[gameRoomIndex].gameProgress.dayResult = [];
+
             gameNps.to(gameCode).emit('action-stop');
 
             const { players } = game[gameRoomIndex];
@@ -897,6 +941,7 @@ module.exports = (gameNps, socket) => {
             const MAF_GUNNER_BLOCKED = 'MAF_GUNNER_BLOCKED';
             const I_BLOCKED = 'I_BLOCKED';
             const DEATH = 'DEATH';
+            const ACTION_USED = 'ACTION_USED';
 
             const mafiaGunner = findMafGunner(players);
             const target = parseMafiaTarget(players);
@@ -912,7 +957,7 @@ module.exports = (gameNps, socket) => {
                             });
                         } else {
                             /** If doctor protection target is targeted by mafia */
-                            if (player.actionOn && isPlayerTargeted(players, player.actionOn)) {
+                            if (player.actionOn && isPlayerTargeted(players, player.actionOn, mafiaGunner)) {
                                 modifyActionResult(player.playerID, {
                                     code: MY_DOCTOR_PROTECTED,
                                     payload: '',
@@ -921,7 +966,7 @@ module.exports = (gameNps, socket) => {
                         }
 
                         /** If doctor is targeted */
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -938,29 +983,13 @@ module.exports = (gameNps, socket) => {
                         break;
 
                     case 'Vigilante':
-                        /** If vig is blocked, else if vig has targeted someone */
                         if (isPlayerBlocked(players, player.playerID)) {
                             modifyActionResult(player.playerID, {
                                 code: BLOCKED,
                                 payload: '',
                             });
-                        } else {
-                            if (player.actionOn) {
-                                if (isTargetProtected(players, player.actionOn)) {
-                                    modifyActionResult(player.playerID, {
-                                        code: TARGET_PROTECTED,
-                                        payload: player.actionLimit - 1,
-                                    });
-                                } else {
-                                    modifyActionResult(player.playerID, {
-                                        code: VIG_KILLED,
-                                        payload: player.actionLimit - 1,
-                                    });
-                                }
-                            }
                         }
 
-                        /** If vig is targeted */
                         if (isPlayerTargeted(players, player.playerID)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
@@ -971,6 +1000,20 @@ module.exports = (gameNps, socket) => {
                                 modifyActionResult(player.playerID, {
                                     code: DEATH,
                                     payload: '',
+                                });
+                            }
+                        }
+
+                        if (player.actionOn) {
+                            if (isTargetProtected(players, player.actionOn)) {
+                                modifyActionResult(player.playerID, {
+                                    code: TARGET_PROTECTED,
+                                    payload: player.actionCount - 1,
+                                });
+                            } else {
+                                modifyActionResult(player.playerID, {
+                                    code: VIG_KILLED,
+                                    payload: player.actionCount - 1,
                                 });
                             }
                         }
@@ -997,19 +1040,24 @@ module.exports = (gameNps, socket) => {
                                     });
                                 }
                             }
+                        } else if (isPlayerTargeted(players, player.playerID)) {
+                            if (player.actionOn) {
+                                modifyActionResult(player.playerID, {
+                                    code: BRAWLER_GUARDED,
+                                    payload: player.actionCount - 1,
+                                });
+                            } else {
+                                modifyActionResult(player.playerID, {
+                                    code: DEATH,
+                                    payload: '',
+                                });
+                            }
                         } else {
                             if (player.actionOn) {
-                                if (isPlayerTargeted(players, player.playerID)) {
-                                    modifyActionResult(player.playerID, {
-                                        code: BRAWLER_GUARDED,
-                                        payload: player.actionLimit - 1,
-                                    });
-                                } else {
-                                    modifyActionResult(player.playerID, {
-                                        code: '',
-                                        payload: player.actionLimit - 1,
-                                    });
-                                }
+                                modifyActionResult(player.playerID, {
+                                    code: ACTION_USED,
+                                    payload: player.actionCount - 1,
+                                });
                             }
                         }
 
@@ -1033,7 +1081,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1067,7 +1115,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1098,7 +1146,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1157,7 +1205,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1184,16 +1232,18 @@ module.exports = (gameNps, socket) => {
                                 }
                             } else {
                                 if (target.playerRole === 'Brawler' && target.actionOn) {
-                                    if (mafiaGunner.playerID === player.playerID) {
-                                        modifyActionResult(player.playerID, {
-                                            code: DEATH,
-                                            payload: '',
-                                        });
-                                    } else {
-                                        modifyActionResult(player.playerID, {
-                                            code: TARGET_PROTECTED,
-                                            payload: '',
-                                        });
+                                    if (isPlayerBlocked(players, target.playerID) === false) {
+                                        if (mafiaGunner.playerID === player.playerID) {
+                                            modifyActionResult(player.playerID, {
+                                                code: DEATH,
+                                                payload: '',
+                                            });
+                                        } else {
+                                            modifyActionResult(player.playerID, {
+                                                code: TARGET_PROTECTED,
+                                                payload: '',
+                                            });
+                                        }
                                     }
                                 } else {
                                     if (isTargetProtected(players, target.playerID)) {
@@ -1211,7 +1261,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1265,7 +1315,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1291,7 +1341,7 @@ module.exports = (gameNps, socket) => {
                             }
                         }
 
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1308,7 +1358,7 @@ module.exports = (gameNps, socket) => {
                         break;
 
                     case 'Townie':
-                        if (isPlayerTargeted(players, player.playerID)) {
+                        if (isPlayerTargeted(players, player.playerID, mafiaGunner)) {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
@@ -1331,21 +1381,52 @@ module.exports = (gameNps, socket) => {
                 gameNps.to(actionResult.socketID).emit('action-result', actionResult);
             });
 
+            const dayResult = [];
+
+            /** If actions contains dead players, update them to dead. If actions contains players who have action limit, update their action limit */
             actionResults.forEach((actionResult) => {
+                console.log('actionResult :', actionResult);
                 const resultCodes = actionResult.results.map((result) => result.code);
+                console.log('resultCodes :', resultCodes);
 
                 if (resultCodes.includes(DEATH)) {
                     const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
 
                     game[gameRoomIndex].players[playerIndex].playerAlive = false;
+                    dayResult.push(game[gameRoomIndex].players[playerIndex]);
                 }
 
-                if (resultCodes.includes(VIG_KILLED) || resultCodes.includes(BRAWLER_GUARDED)) {
+                if (resultCodes.includes(VIG_KILLED) || resultCodes.includes(BRAWLER_GUARDED) || resultCodes.includes(ACTION_USED)) {
                     const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
 
-                    game[gameRoomIndex].players[playerIndex].actionLimit = game[gameRoomIndex].players[playerIndex].actionLimit - 1;
+                    game[gameRoomIndex].players[playerIndex].actionCount = game[gameRoomIndex].players[playerIndex].actionCount - 1;
+                    console.log(
+                        'Found a player :',
+                        game[gameRoomIndex].players[playerIndex].playerRole,
+                        ' who used an action, new action limit: ',
+                        game[gameRoomIndex].players[playerIndex].actionCount
+                    );
+                }
+
+                /** */
+                function isPlayerVig(players, playerID) {
+                    return players.find((player) => player.playerRole === 'Vigilante' && player.playerID === playerID);
+                }
+
+                if (resultCodes.includes(TARGET_PROTECTED) && isPlayerVig(players, actionResult.playerID)) {
+                    const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
+
+                    game[gameRoomIndex].players[playerIndex].actionCount = game[gameRoomIndex].players[playerIndex].actionCount - 1;
                 }
             });
+
+            game[gameRoomIndex].gameProgress.dayResult = dayResult;
+
+            /** Reset the actions */
+            game[gameRoomIndex].players = game[gameRoomIndex].players.map((player) => ({
+                ...player,
+                actionOn: '',
+            }));
         }
     });
 };

@@ -27,13 +27,7 @@ function TownUI({ state, actionStart, socket, lobbyCode }) {
     const [players, setPlayers] = useState(state.players.map((p) => ({ ...p, actionSelected: false })));
 
     useEffect(() => {
-        console.log('Recieved initial players from state: ', state.players);
-    }, [state.players]);
-
-    useEffect(() => {
         socket.on('action-confirmed', (players) => {
-            console.log('recieved action-confirmed, players :', players);
-
             setPlayers(players);
         });
     }, [socket]);
@@ -92,7 +86,17 @@ function TownUI({ state, actionStart, socket, lobbyCode }) {
  * After display timeout has ended (4 seconds), Transition to DAY
  */
 
-const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart, myPlayerID, lobbyCode }) {
+const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart, myPlayer, lobbyCode }) {
+    const handleMafiaDisabled = (player) => {
+        if (!myPlayer.playerAlive) return true;
+
+        if (!player.playerAlive) return true;
+
+        if (player.playerTeam === 'MAFIA') return true;
+
+        return false;
+    };
+
     return (
         <div className='players-table'>
             <table className='table'>
@@ -105,7 +109,6 @@ const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart
                 <tbody>
                     {players.length
                         ? players.map((p, i) => {
-                              console.log('Looping through player: ', p);
                               return (
                                   <tr key={p.playerID} style={{ color: p.playerTeam === 'MAFIA' ? 'red' : '' }}>
                                       <th scope='col'>#{i + 1}</th>
@@ -117,8 +120,10 @@ const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart
                                                   {' '}
                                                   <button
                                                       className={`btn ${parseMafiaSelectButton(p)}`}
-                                                      onClick={() => socket.volatile.emit('action-on', lobbyCode, myPlayerID, p.playerID)}
-                                                      disabled={p.playerTeam === 'MAFIA' ? true : false}
+                                                      onClick={() =>
+                                                          socket.volatile.emit('action-on', lobbyCode, myPlayer.playerID, p.playerID)
+                                                      }
+                                                      disabled={handleMafiaDisabled(p)}
                                                   >
                                                       Choose
                                                   </button>{' '}
@@ -148,8 +153,6 @@ function MafiaUI({ state, actionStart, socket, lobbyCode }) {
 
     useEffect(() => {
         socket.on('action-confirmed', (players) => {
-            console.log('listened to action-confirmed, players :', players);
-
             let mafiaParsedPlayers = players.map((player) => ({
                 ...player,
                 myActionOn: false,
@@ -187,8 +190,6 @@ function MafiaUI({ state, actionStart, socket, lobbyCode }) {
                 }
             });
 
-            console.log('parsed :', mafiaParsedPlayers);
-
             setPlayers(mafiaParsedPlayers);
         });
     }, [socket, state.myPlayer.playerID]);
@@ -196,13 +197,7 @@ function MafiaUI({ state, actionStart, socket, lobbyCode }) {
     return (
         <div>
             <p>Mafia UI</p>
-            <MafiaTable
-                socket={socket}
-                players={players}
-                lobbyCode={lobbyCode}
-                myPlayerID={state.myPlayer.playerID}
-                actionStart={actionStart}
-            />
+            <MafiaTable socket={socket} players={players} lobbyCode={lobbyCode} myPlayer={state.myPlayer} actionStart={actionStart} />
         </div>
     );
 }
@@ -219,27 +214,20 @@ export default function Night({ socket, state, dispatch }) {
     const [timer, setTimer] = useState(undefined);
 
     const [actionStart, setActionStart] = useState(false);
-    const [actionFinished, setActionFinished] = useState(false);
 
     const [actionResult, setActionResult] = useState(undefined);
-
-    actionStart && console.log('actionStart :', actionStart);
-    actionResult && console.log('actionResult :', actionResult);
 
     useTimer({ timer, setTimer });
 
     useEffect(() => {
-        console.log('fired moved-to: night event with values (lobbyCode, playerID) :', lobbyCode, state.myPlayer.playerID);
         socket.emit('moved-to', 'night', lobbyCode, state.myPlayer.playerID);
     }, [socket, lobbyCode, state.players, state.myPlayer.playerID]);
 
     useEffect(() => {
         socket.on('all-players-in-room', async (room) => {
-            console.log('recieved all-players-in-room with room :', room);
             if (room === 'night') {
                 await new Promise((r) =>
                     setTimeout(() => {
-                        console.log('starting timer!');
                         setActionStart(true);
                         setTimer(35);
                         r();
@@ -251,14 +239,12 @@ export default function Night({ socket, state, dispatch }) {
 
     useEffect(() => {
         if (timer === 0 && state.myPlayer.isOwner) {
-            console.log('player is owner, emitting action-finished with lobbyCode :', lobbyCode);
             socket.emit('action-finished', lobbyCode);
         }
     }, [socket, timer, state.myPlayer.isOwner, lobbyCode]);
 
     useEffect(() => {
         socket.on('action-stop', () => {
-            console.log('Setting actionStart to FALSE');
             setActionStart(false);
         });
     }, [socket]);
@@ -280,7 +266,6 @@ export default function Night({ socket, state, dispatch }) {
 
     useEffect(() => {
         socket.on('transition-to', (to) => {
-            console.log('transitioning to: ', to);
             dispatch({ type: 'TRANSITION_TO', payload: to });
         });
     }, [socket, dispatch]);

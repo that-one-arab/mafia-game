@@ -58,17 +58,16 @@ export default function RoleAssignment({ state, dispatch, socket }) {
     /** Handles assigning role and team to client */
     useEffect(() => {
         socket.on('assigned-role', (player) => {
-            console.group('assigned-role');
-            console.log('listened to event, got player :', player);
+            // console.group('assigned-role');
 
             setTimeout(() => {
-                console.log('dispatching SET_PLAYER with obj: ', player);
+                // console.log('dispatching SET_PLAYER with obj: ', player);
                 dispatch({ type: 'SET_PLAYER', payload: player });
 
                 window.sessionStorage.setItem('local-player', JSON.stringify(player));
             }, 5000);
 
-            console.groupEnd('assigned-role');
+            // console.groupEnd('assigned-role');
         });
     }, [socket, dispatch]);
 

@@ -202,12 +202,30 @@ function assignRoles(teams) {
 
         rolesSequence = verifyRequiredRoles(rolesSequence, mafiaRoles);
 
+        const tempRoles = [
+            {
+                name: 'Godfather',
+                team: MAFIA,
+                description: 'Head of the mafia. If detected, comes up as "Townie". During night, kill decision goes to you',
+                frequency: 9,
+                unique: true,
+                required: true,
+                actionCount: 'NONE',
+            },
+        ];
         return mafiaTeam.map((player, i) => ({
             ...player,
-            playerRole: rolesSequence[i].name,
-            playerTeam: rolesSequence[i].team,
-            actionCount: rolesSequence[i].actionCount,
+            playerRole: tempRoles[i].name,
+            playerTeam: tempRoles[i].team,
+            actionCount: tempRoles[i].actionCount,
         }));
+
+        // return mafiaTeam.map((player, i) => ({
+        //     ...player,
+        //     playerRole: rolesSequence[i].name,
+        //     playerTeam: rolesSequence[i].team,
+        //     actionCount: rolesSequence[i].actionCount,
+        // }));
     }
 
     /** */
@@ -216,12 +234,48 @@ function assignRoles(teams) {
 
         rolesSequence = verifyRequiredRoles(rolesSequence, townRoles);
 
+        const tempRoles = [
+            {
+                name: 'Townie',
+                team: TOWN,
+                description: 'Regular town-aligned role with no special ability.',
+                frequency: 9,
+                unique: false,
+                required: false,
+                actionCount: 'NONE',
+            },
+            {
+                name: 'Brawler',
+                team: TOWN,
+                description: 'Can protect themselves 2 times, if attacked while protecting, they will kill the attacker',
+                frequency: 2,
+                unique: false,
+                required: false,
+                actionCount: 2,
+            },
+            {
+                name: 'Mermaid',
+                team: TOWN,
+                description: 'May choose one player to block them from using their ability',
+                frequency: 2,
+                unique: false,
+                required: false,
+                actionCount: 'NONE',
+            },
+        ];
         return townTeam.map((player, i) => ({
             ...player,
-            playerRole: rolesSequence[i].name,
-            playerTeam: rolesSequence[i].team,
-            actionCount: rolesSequence[i].actionCount,
+            playerRole: tempRoles[i].name,
+            playerTeam: tempRoles[i].team,
+            actionCount: tempRoles[i].actionCount,
         }));
+
+        // return townTeam.map((player, i) => ({
+        //     ...player,
+        //     playerRole: rolesSequence[i].name,
+        //     playerTeam: rolesSequence[i].team,
+        //     actionCount: rolesSequence[i].actionCount,
+        // }));
     }
 
     const mafiaTeam = getMafiaTeamRoles(teams.mafiaTeam);
