@@ -61,7 +61,12 @@ const initializeServer = async (port = undefined) => {
         await connectToDB();
         const server = await initializeServer(8080);
 
-        const io = socketIO(server);
+        const io = socketIO(server, {
+            cors: {
+                origin: '*',
+                methods: ['GET', 'POST'],
+            },
+        });
 
         const lobbyNps = io.of('/lobby');
         const gameNps = io.of('/game');

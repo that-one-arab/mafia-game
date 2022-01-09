@@ -88,6 +88,8 @@ function TownUI({ state, actionStart, socket, lobbyCode }) {
 
 const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart, myPlayer, lobbyCode }) {
     const handleMafiaDisabled = (player) => {
+        if (myPlayer.playerRole === 'Goon') return true;
+
         if (!myPlayer.playerAlive) return true;
 
         if (!player.playerAlive) return true;

@@ -36,6 +36,12 @@ const game = [
             ],
             dayCount: 0,
             dayResult: [],
+            timers: [
+                {
+                    playerID: '',
+                    playerTimer: 0,
+                },
+            ],
         },
     },
 ];
@@ -171,6 +177,7 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
             currentActions: [],
             dayCount: 0,
             dayResult: [],
+            timers: [],
         },
     });
 };
@@ -410,8 +417,6 @@ module.exports = (gameNps, socket) => {
 
             /** Get index again in case the "gameRoomIndex" var returned null | undefined (happens if game room does not exist) */
             const players = game[indexOfGameRoom(gameCode)].players;
-
-            console.log({ game: game[gameRoomIndex] });
 
             if (game[gameRoomIndex].gameProgress.areRolesAssigned) {
                 responseCb({
@@ -758,7 +763,7 @@ module.exports = (gameNps, socket) => {
 
     /** */
     function findGodfather(players) {
-        return players.find((p) => p.playerRole === 'Godfather');
+        return players.find((p) => p.playerRole === 'Godfather' && p.playerAlive);
     }
 
     /** */
@@ -823,10 +828,7 @@ module.exports = (gameNps, socket) => {
         }
 
         if (mafiaVotes.length) {
-            console.log({ mafiaVotes });
-
             const highestVotes = mafiaVotes.sort((a, b) => b.votes - a.votes)[0];
-            console.log({ highestVotes });
 
             if (highestVotes.player === playerID) {
                 for (let i = 0; i < players.length; i++) {
@@ -895,7 +897,7 @@ module.exports = (gameNps, socket) => {
             if (mafPlayer.playerAlive) return mafPlayer;
         }
 
-        return mafPlayers.find((player) => player.playerRole === 'Godfather');
+        return mafPlayers.find((player) => player.playerRole === 'Godfather' && player.playerAlive);
     }
 
     socket.on('action-finished', (gameCode) => {
@@ -912,7 +914,6 @@ module.exports = (gameNps, socket) => {
                 playerID: player.playerID,
                 results: [],
             }));
-            console.log('actionResults before :', actionResults);
 
             const modifyActionResult = (playerID, result) => {
                 const index = actionResults.findIndex((p) => p.playerID === playerID);
@@ -1385,9 +1386,7 @@ module.exports = (gameNps, socket) => {
 
             /** If actions contains dead players, update them to dead. If actions contains players who have action limit, update their action limit */
             actionResults.forEach((actionResult) => {
-                console.log('actionResult :', actionResult);
                 const resultCodes = actionResult.results.map((result) => result.code);
-                console.log('resultCodes :', resultCodes);
 
                 if (resultCodes.includes(DEATH)) {
                     const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
@@ -1404,12 +1403,6 @@ module.exports = (gameNps, socket) => {
                     const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, actionResult.playerID);
 
                     game[gameRoomIndex].players[playerIndex].actionCount = game[gameRoomIndex].players[playerIndex].actionCount - 1;
-                    console.log(
-                        'Found a player :',
-                        game[gameRoomIndex].players[playerIndex].playerRole,
-                        ' who used an action, new action limit: ',
-                        game[gameRoomIndex].players[playerIndex].actionCount
-                    );
                 }
 
                 /** */
@@ -1455,5 +1448,67 @@ module.exports = (gameNps, socket) => {
                 actionOn: '',
             }));
         }
+    });
+
+    socket.on('sync-time', (gameCode, playerID, time) => {
+        console.group('sync-time');
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+        // console.log({ gameRoomIndex });
+        if (gameRoomIndex !== -1) {
+            const { playersAmount } = game[gameRoomIndex];
+            const { timers } = game[gameRoomIndex].gameProgress;
+            // console.log({ playersAmount, timers });
+
+            const playerIndex = timers.findIndex((timer) => timer.playerID === playerID);
+            // console.log({ playerIndex });
+
+            /** Add new timer */
+            if (playerIndex === -1) {
+                timers.push({
+                    playerID,
+                    playerTimer: time,
+                });
+                // console.log('pushed a new timer, new value: ', timers);
+            } else {
+                /** Modify the existing timer */
+                timers[playerIndex].playerTimer = time;
+                // console.log('modified an existing timer, new value: ', timers);
+            }
+
+            if (playersAmount === timers.length) {
+                // console.log('all players emitted their timers, processing...');
+                /** */
+                function getAverage(times) {
+                    return Math.round(times.reduce((a, b) => a + b) / times.length);
+                }
+
+                /** */
+                function areTimesSynched(timers) {
+                    for (let i = 0; i < timers.length; i++) {
+                        const time = timers[i];
+
+                        if (i === 0) continue;
+                        else {
+                            if (time !== timers[0] - 1 && time !== timers[0] + 1 && time !== timers[0]) return false;
+                        }
+                    }
+                    return true;
+                }
+
+                const times = timers.map((timer) => timer.playerTimer);
+                console.log({ times });
+
+                if (areTimesSynched(times) === false) {
+                    console.log('not all times are synched...');
+                    const average = getAverage(times);
+                    console.log('average: ', average);
+
+                    gameNps.to(gameCode).emit('synced-time', average);
+                    game[gameRoomIndex].gameProgress.timers = [];
+                }
+            }
+        }
+
+        console.groupEnd('sync-time');
     });
 };

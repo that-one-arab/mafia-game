@@ -1,6 +1,7 @@
 import { useState, useEffect, useReducer } from 'react';
 import { useDispatch } from 'react-redux';
 import io from 'socket.io-client';
+import { WEBSOCKET_ENDPOINT } from '../../global';
 import Day from './Day';
 import GameResult from './GameResult';
 import Night from './Night';
@@ -9,7 +10,6 @@ import RoleAssignment from './RoleAssignment';
 import './style.css';
 
 function Renderer({ socket, state, dispatch }) {
-    console.log({ gameEnded: state.gameEnded });
     const { isRoleAssigned, hasGameStarted, gamePhase } = state.gameProgress;
     if (state.gameEnded) return <GameResult winnerTeam={state.gameEnded.winner} players={state.gameEnded.players} />;
     else if (isRoleAssigned && hasGameStarted && gamePhase === 'day') {
@@ -118,7 +118,7 @@ export default function ControllerWrapper() {
 
     /** Socket initialization */
     useEffect(() => {
-        const newSocket = io(`http://localhost:8080/game`, {
+        const newSocket = io(`${WEBSOCKET_ENDPOINT}/game`, {
             transports: ['websocket'],
         });
         setSocket(newSocket);

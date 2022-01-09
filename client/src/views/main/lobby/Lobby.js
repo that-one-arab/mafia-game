@@ -3,6 +3,7 @@ import io from 'socket.io-client';
 import { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useInterval } from '../../../hooks';
+import { WEBSOCKET_ENDPOINT } from '../../../global';
 
 function Timer({ timer, setTimer }) {
     useInterval(() => {
@@ -152,7 +153,7 @@ export default function LobbyWrapper() {
 
     /** Socket initialization */
     useEffect(() => {
-        const newSocket = io(`http://localhost:8080/lobby`, {
+        const newSocket = io(`${WEBSOCKET_ENDPOINT}/lobby`, {
             transports: ['websocket'],
         });
         setSocket(newSocket);

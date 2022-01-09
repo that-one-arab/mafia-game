@@ -189,9 +189,9 @@ export default function ActionResult({ actionResult }) {
                 newestOnTop={false}
                 closeOnClick
                 rtl={false}
-                pauseOnFocusLoss
                 draggable
                 pauseOnHover
+                pauseOnFocusLoss={false}
             />
         </div>
     );

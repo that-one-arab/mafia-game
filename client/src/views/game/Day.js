@@ -42,6 +42,20 @@ export default function Day({ state, dispatch, socket }) {
 
     useTimer({ timer, setTimer });
 
+    useInterval(() => {
+        if (timer && timer > 15) {
+            console.log('emitting sync-time...');
+            socket.emit('sync-time', lobbyCode, state.myPlayer.playerID, timer);
+        }
+    }, 15000);
+
+    useEffect(() => {
+        socket.on('synced-time', (newTimer) => {
+            console.log('recieved synced-time, new timer: ', newTimer);
+            setTimer(newTimer);
+        });
+    }, [socket]);
+
     /** Fires once */
     useEffect(() => {
         if (!movedToDayFired) {
@@ -269,9 +283,9 @@ export default function Day({ state, dispatch, socket }) {
                 newestOnTop={false}
                 closeOnClick
                 rtl={false}
-                pauseOnFocusLoss
                 draggable
                 pauseOnHover
+                pauseOnFocusLoss={false}
             />
             {lynchResult && (
                 <h1 style={{ color: lynchResult.playerTeam === 'MAFIA' ? 'red' : 'green' }}>
