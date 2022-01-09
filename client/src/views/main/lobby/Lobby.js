@@ -152,7 +152,7 @@ export default function LobbyWrapper() {
 
     /** Socket initialization */
     useEffect(() => {
-        const newSocket = io(`https://projects.b2b-iys.muhammed-aldulaimi.com/lobby`, {
+        const newSocket = io(`http://localhost:8080/lobby`, {
             transports: ['websocket'],
         });
         setSocket(newSocket);
