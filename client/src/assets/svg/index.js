@@ -224,12 +224,12 @@ export const gameEls = [
     {
         name: 'Godfather',
         component: <Svg svg='Godfather' />,
-        description: 'Head of the mafia. If detected, comes up as "Townie". During night, kill decision goes to you',
+        description: 'Head of the mafia. During night, kill decision goes to you',
     },
     {
         name: 'Goon',
         component: <Svg svg='Goon' />,
-        description: 'Regular mafia-aligned role with no special ability.',
+        description: 'Regular mafia-aligned role with no special ability. If all mafia members die, they get promoted to mafia',
     },
     {
         name: 'Escort',
@@ -282,12 +282,12 @@ export const els = [
     {
         name: 'Godfather',
         component: <Svg className={'svg slide-img'} svg='Godfather' />,
-        description: 'Head of the mafia. If detected, comes up as "Townie". During night, kill decision goes to you',
+        description: 'Head of the mafia. During night, kill decision goes to you',
     },
     {
         name: 'Goon',
         component: <Svg className={'svg slide-img'} svg='Goon' />,
-        description: 'Regular mafia-aligned role with no special ability.',
+        description: 'Regular mafia-aligned role with no special ability. If all mafia members die, they get promoted to mafia',
     },
     {
         name: 'Escort',

@@ -213,19 +213,19 @@ function assignRoles(teams) {
                 actionCount: 'NONE',
             },
         ];
-        return mafiaTeam.map((player, i) => ({
-            ...player,
-            playerRole: tempRoles[i].name,
-            playerTeam: tempRoles[i].team,
-            actionCount: tempRoles[i].actionCount,
-        }));
-
         // return mafiaTeam.map((player, i) => ({
         //     ...player,
-        //     playerRole: rolesSequence[i].name,
-        //     playerTeam: rolesSequence[i].team,
-        //     actionCount: rolesSequence[i].actionCount,
+        //     playerRole: tempRoles[i].name,
+        //     playerTeam: tempRoles[i].team,
+        //     actionCount: tempRoles[i].actionCount,
         // }));
+
+        return mafiaTeam.map((player, i) => ({
+            ...player,
+            playerRole: rolesSequence[i].name,
+            playerTeam: rolesSequence[i].team,
+            actionCount: rolesSequence[i].actionCount,
+        }));
     }
 
     /** */
@@ -263,19 +263,19 @@ function assignRoles(teams) {
                 actionCount: 'NONE',
             },
         ];
-        return townTeam.map((player, i) => ({
-            ...player,
-            playerRole: tempRoles[i].name,
-            playerTeam: tempRoles[i].team,
-            actionCount: tempRoles[i].actionCount,
-        }));
-
         // return townTeam.map((player, i) => ({
         //     ...player,
-        //     playerRole: rolesSequence[i].name,
-        //     playerTeam: rolesSequence[i].team,
-        //     actionCount: rolesSequence[i].actionCount,
+        //     playerRole: tempRoles[i].name,
+        //     playerTeam: tempRoles[i].team,
+        //     actionCount: tempRoles[i].actionCount,
         // }));
+
+        return townTeam.map((player, i) => ({
+            ...player,
+            playerRole: rolesSequence[i].name,
+            playerTeam: rolesSequence[i].team,
+            actionCount: rolesSequence[i].actionCount,
+        }));
     }
 
     const mafiaTeam = getMafiaTeamRoles(teams.mafiaTeam);

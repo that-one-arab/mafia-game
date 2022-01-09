@@ -1335,7 +1335,7 @@ module.exports = (gameNps, socket) => {
                         } else {
                             if (player.actionOn) {
                                 modifyActionResult(player.playerID, {
-                                    code: BLOCKED,
+                                    code: I_BLOCKED,
                                     payload: '',
                                 });
                             }
@@ -1394,6 +1394,10 @@ module.exports = (gameNps, socket) => {
 
                     game[gameRoomIndex].players[playerIndex].playerAlive = false;
                     dayResult.push(game[gameRoomIndex].players[playerIndex]);
+
+                    // if (players.find((p) => p.playerID === actionResult.playerID).playerRole === 'Godfather') {
+
+                    // }
                 }
 
                 if (resultCodes.includes(VIG_KILLED) || resultCodes.includes(BRAWLER_GUARDED) || resultCodes.includes(ACTION_USED)) {
@@ -1419,6 +1423,29 @@ module.exports = (gameNps, socket) => {
                     game[gameRoomIndex].players[playerIndex].actionCount = game[gameRoomIndex].players[playerIndex].actionCount - 1;
                 }
             });
+
+            let newPlayers = JSON.parse(JSON.stringify(players));
+
+            /** If all mafia roles died, promote the goons to mafia (if they exist) */
+            const mafiaMembers = players.filter((p) => p.playerTeam === 'MAFIA' && p.playerRole === 'Mafia' && p.playerAlive);
+            if (!mafiaMembers.length) {
+                newPlayers = newPlayers.map((p) => ({
+                    ...p,
+                    playerRole: p.playerRole === 'Goon' ? 'Mafia' : p.playerRole,
+                }));
+            }
+
+            /** If godfather dies, find one member who is of role Mafia and promote them to Godfather */
+            const godfather = players.find((p) => p.playerRole === 'Godfather' && p.playerAlive);
+            if (!godfather) {
+                const newGf = newPlayers.find((player) => player.playerRole === 'Mafia' && player.playerAlive);
+                if (newGf) {
+                    const playerIndex = newPlayers.findIndex((player) => player.playerID === newGf.playerID);
+                    newPlayers[playerIndex].playerRole = 'Godfather';
+                }
+            }
+
+            game[gameRoomIndex].players = newPlayers;
 
             game[gameRoomIndex].gameProgress.dayResult = dayResult;
 
