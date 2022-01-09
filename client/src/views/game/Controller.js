@@ -118,7 +118,7 @@ export default function ControllerWrapper() {
 
     /** Socket initialization */
     useEffect(() => {
-        const newSocket = io(`http://localhost:8080/game`, {
+        const newSocket = io(`https://projects.b2b-iys.muhammed-aldulaimi.com/game`, {
             transports: ['websocket'],
         });
         setSocket(newSocket);
