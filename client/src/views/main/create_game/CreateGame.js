@@ -1,19 +1,8 @@
 import { useHistory } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useState } from 'react';
-import { Loading, Toaster } from '../../../components';
-
-const ERR_SELECT_PLAYERS_AMOUNT = {
-    show: 1,
-    header: 'No players amount selected',
-    body: 'Please select amount of players for the game',
-};
-
-const ERR_INPUT_PLAYER_NAME = {
-    show: 1,
-    header: 'Your player name cannot be empty',
-    body: 'Your player name is used to identify you in the game, please input a name',
-};
+import { Loading } from '../../../components';
+import { ToastContainer, toast } from 'react-toastify';
 
 export default function CreateGame() {
     window.sessionStorage.clear();
@@ -23,11 +12,6 @@ export default function CreateGame() {
     const playersAmount = useSelector((state) => state.gameOptions.playersAmount);
     const playerName = useSelector((state) => state.myPlayer.playerName);
 
-    const [toast, setToast] = useState({
-        show: 0,
-        header: '',
-        body: '',
-    });
     const [loading, setLoading] = useState(false);
 
     const dispatchPlayerAmountHandler = (e) =>
@@ -65,34 +49,88 @@ export default function CreateGame() {
     };
 
     const createGameNextScreenHandler = async () => {
-        if (playerName.trim() === '') setToast({ ...ERR_INPUT_PLAYER_NAME, show: toast.show + 1 });
-        else if (playersAmount === 0) setToast({ ...ERR_SELECT_PLAYERS_AMOUNT, show: toast.show + 1 });
+        if (playerName.trim() === '')
+            toast.warn('Your player name is used to identify you in the game, please enter a name', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+        else if (playersAmount === 0)
+            toast.warn('Please select amount of players for the game', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         else await createRoomHandler();
     };
 
     return (
         <div>
             <Loading absolute loading={loading}>
-                <div>
-                    <h3>Input your name</h3>
-                    <input onChange={dispatchPlayerNameHandler} value={playerName} />
-                </div>
-                <div>
-                    <h3>Choose amount of players</h3>
-                    <div className='btn-group' role='group' aria-label='Basic outlined example'>
-                        <input
-                            placeholder='Select amount of players (min: 4)'
-                            min={4}
-                            type={'number'}
-                            onChange={dispatchPlayerAmountHandler}
-                        />
+                <div className='input_create_game'>
+                    <div className='input_fields'>
+                        <div action='#' className='form'>
+                            <div className='form__grup'>
+                                <label htmlFor='name' className='form__label'>
+                                    Enter your player Name
+                                </label>
+                                <input
+                                    onChange={dispatchPlayerNameHandler}
+                                    placeholder='Player Name'
+                                    value={playerName}
+                                    type='text'
+                                    className='form__input'
+                                    id='name'
+                                    required
+                                />
+                            </div>
+                            <div className='form__grup'>
+                                <label htmlFor='name' className='form__label'>
+                                    Enter amount of players
+                                </label>
+                                <input
+                                    placeholder='(min: 4)'
+                                    value={playersAmount}
+                                    min='4'
+                                    type='number'
+                                    onChange={dispatchPlayerAmountHandler}
+                                    className='form__input'
+                                    id='Amount of Players'
+                                    required
+                                />
+                            </div>
+                            <div className='form__grup'>
+                                <div className='Continuo_btn_box'>
+                                    <button className='btnbox_btn--animation btn-Continuo' onClick={createGameNextScreenHandler}>
+                                        Continue
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <button onClick={createGameNextScreenHandler}>Continue</button>
-                </div>
             </Loading>
-            <Toaster toast={toast} setToast={setToast} />
+            <ToastContainer
+                position='top-center'
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                draggable
+                pauseOnHover
+                pauseOnFocusLoss={false}
+            />
         </div>
     );
 }

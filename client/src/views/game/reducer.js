@@ -16,6 +16,7 @@ export const initialState = {
 
         /** Which player voted for which player */
         lynchVotes: [],
+        currentTimer: 0,
     },
     gameEnded: undefined,
     /** Other players */
@@ -91,10 +92,27 @@ export const reducer = (state = initialState, action) => {
             };
 
         case 'GAME_ENDED':
-            console.log('reducer gameEnded, payload: ', action.payload);
             return {
                 ...state,
                 gameEnded: action.payload,
+            };
+
+        case 'PAUSE_GAME':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    gamePaused: action.payload,
+                },
+            };
+
+        case 'CLEANUP_TIMER':
+            return {
+                ...state,
+                gameProgress: {
+                    ...state.gameProgress,
+                    currentTimer: 0,
+                },
             };
 
         default:

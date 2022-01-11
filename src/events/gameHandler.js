@@ -42,6 +42,8 @@ const game = [
                     playerTimer: 0,
                 },
             ],
+            gamePaused: false,
+            currentTimer: 0,
         },
     },
 ];
@@ -57,26 +59,6 @@ const voteResult = (roomIndex, currentVotes) => {
     }
 
     return false;
-};
-
-const parseGameRoomPlayers = (players) => {
-    return players.map((player) => ({
-        ...player,
-        playerRole: '',
-        playerTeam: '',
-        playerAlive: true,
-    }));
-};
-
-const verifyEmitterToBeOwner = (gameRoom, playerID) => {
-    /** Sanity check */
-    if (gameRoom && gameRoom.players && gameRoom.players.length) {
-        for (let i = 0; i < game.players.length; i++) {
-            const player = game.players[i];
-            if (player.playerID === playerID) return true;
-        }
-    }
-    throw new Error('Event emitter with ID ', playerID, ' is not the game owner');
 };
 
 const indexOfGameRoom = (gameCode) => {
@@ -178,6 +160,8 @@ const createRoom = (gameCode, socketID, playerID, playerName) => {
             dayCount: 0,
             dayResult: [],
             timers: [],
+            gamePaused: false,
+            currentTimer: 0,
         },
     });
 };
@@ -346,45 +330,14 @@ function insertVote(roomIndex, voterID, votedID) {
 }
 
 /** */
-function parsePlayerSelectedActionArr(players, actionGetterID) {
-    const safeParsedPlayers = safeParsePlayers(players);
-    return safeParsedPlayers.map((player) => ({
-        ...player,
-        actionSelected: player.playerID === actionGetterID ? true : false,
-    }));
-}
-
-/** */
-function mafiaSafeParsePlayers(players) {
-    const parsedPlayers = [];
-    players.forEach((player) => {
-        if (player.playerTeam === 'MAFIA')
-            parsedPlayers.push({
-                ...player,
-                actionSelected: false,
-            });
-        else
-            parsedPlayers.push({
-                playerID: player.playerID,
-                playerName: player.playerName,
-                playerAlive: player.playerAlive,
-                playerTeam: player.playerTeam,
-                playerDisconnected: player.playerDisconnected,
-                playerIn: player.playerIn,
-                actionSelected: false,
-            });
-    });
-}
-
-/** */
 function verifyWinningCondition(players) {
     const mafPlayers = players.filter((p) => p.playerTeam === 'MAFIA');
     const townPlayers = players.filter((p) => p.playerTeam === 'TOWN');
 
     if (mafPlayers.every((p) => p.playerAlive === false)) {
-        return 'MAFIA';
-    } else if (townPlayers.every((p) => p.playerAlive === false)) {
         return 'TOWN';
+    } else if (townPlayers.every((p) => p.playerAlive === false)) {
+        return 'MAFIA';
     }
 
     return null;
@@ -409,6 +362,15 @@ module.exports = (gameNps, socket) => {
 
                     if (player.playerDisconnected) {
                         reconnectPlayerHandler(gameRoomIndex, playerIndex, socket.id);
+
+                        /** If all the players are in the room, and there is no players who are disconnected and alive */
+                        if (
+                            game[gameRoomIndex].players.length === game[gameRoomIndex].playersAmount &&
+                            game[gameRoomIndex].players.filter((player) => player.playerDisconnected && player.playerAlive).length === 0
+                        ) {
+                            game[gameRoomIndex].gameProgress.gamePaused = false;
+                            gameNps.to(gameCode).emit('unpause-game');
+                        }
                     }
                 }
             } else {
@@ -453,11 +415,10 @@ module.exports = (gameNps, socket) => {
 
     gameNps.adapter.on('leave-room', (room, id) => {
         try {
-            console.log('a player left the socket, id :', id);
             const { found, gameRoomIndex, playerIndex } = findSocketIDIndexInRooms(id);
 
             if (!found)
-                throw new Error(
+                console.error(
                     'leave-room listner: could not find socket ID ',
                     id,
                     '. This could mean the socket did not join properly in the first place'
@@ -465,21 +426,18 @@ module.exports = (gameNps, socket) => {
 
             disconnectPlayer(gameRoomIndex, playerIndex);
 
+            /** Switch ownership of room */
             if (game[gameRoomIndex].players[playerIndex].isOwner) {
-                console.log('the player leaving was the owner');
                 game[gameRoomIndex].players[playerIndex].isOwner = false;
 
                 const newOwner = game[gameRoomIndex].players.filter(
                     (player) => player.isOwner === false && player.playerDisconnected === false
                 )[0];
-                console.log('new room owner :', newOwner);
 
                 const newOwnerIndex = game[gameRoomIndex].players.findIndex((player) => player.playerID === newOwner.playerID);
 
                 game[gameRoomIndex].players[newOwnerIndex].isOwner = true;
             }
-
-            console.log('modifed players :', game[gameRoomIndex].players);
 
             const players = game[gameRoomIndex].players;
 
@@ -497,6 +455,11 @@ module.exports = (gameNps, socket) => {
                     players: p.playerTeam === 'MAFIA' ? mafiaParsedPlayers : townParsedPlayers,
                 });
             });
+
+            if (game[gameRoomIndex].players.filter((player) => player.playerDisconnected && player.playerAlive).length) {
+                game[gameRoomIndex].gameProgress.gamePaused = true;
+                gameNps.to(game[gameRoomIndex].gameCode).emit('pause-game');
+            }
         } catch (error) {
             console.error(error);
         }
@@ -576,8 +539,10 @@ module.exports = (gameNps, socket) => {
             });
 
             const winner = verifyWinningCondition(players);
+            console.log('winner2 :', winner);
             if (winner) {
                 gameNps.to(gameCode).emit('game-ended', winner, players);
+                game.splice(gameRoomIndex, 1);
             }
         }
     });
@@ -594,9 +559,15 @@ module.exports = (gameNps, socket) => {
                 if (players.filter((player) => player.playerIn === room).length !== playersAmount) {
                     game[gameRoomIndex].players[playerIndex].playerIn = room;
 
-                    const roomFilteredPlayers = players.filter((player) => player.playerIn === room && !player.playerDisconnected);
+                    /** Emit all-players-in-room event only if the players have
+                     * 1- Joined the same exact room
+                     * 2- Disconnected players are only dead players
+                     */
 
-                    if (playersAmount === roomFilteredPlayers.length) {
+                    if (
+                        players.filter((player) => player.playerDisconnected && player.playerAlive).length === 0 &&
+                        players.every((player) => player.playerIn === room)
+                    ) {
                         game[gameRoomIndex].gameProgress.gamePhase = room;
                         gameNps.to(gameCode).emit('all-players-in-room', room);
 
@@ -647,8 +618,10 @@ module.exports = (gameNps, socket) => {
             }
 
             const winner = verifyWinningCondition(game[gameRoomIndex].players);
+            console.log('winner1 :', winner);
             if (winner) {
                 gameNps.to(gameCode).emit('game-ended', winner, game[gameRoomIndex].players);
+                game.splice(gameRoomIndex, 1);
             }
         }
     });
@@ -1510,5 +1483,12 @@ module.exports = (gameNps, socket) => {
         }
 
         console.groupEnd('sync-time');
+    });
+
+    socket.on('current-time', (gameCode, time) => {
+        const gameRoomIndex = indexOfGameRoom(gameCode);
+        if (gameRoomIndex !== -1) {
+            game[gameRoomIndex].gameProgress.currentTimer = time;
+        }
     });
 };

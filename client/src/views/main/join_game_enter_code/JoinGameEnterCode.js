@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Toaster, Loading } from '../../../components';
+import { Loading } from '../../../components';
+import { ToastContainer, toast } from 'react-toastify';
 
 const ERR_ENTER_GAME_CODE = {
     show: 1,
@@ -53,7 +54,6 @@ export default function JoinGameEnterCode() {
     const query = useQuery();
 
     const [gameCode, setGameCode] = useState('');
-    const [toast, setToast] = useState({ show: 0, header: '', body: '' });
     const [loading, setLoading] = useState(false);
 
     const { playerName } = useSelector((state) => state.myPlayer);
@@ -74,17 +74,53 @@ export default function JoinGameEnterCode() {
 
             history.push('/lobby');
         } else {
-            setToast({ ...ERR_GAME_CODE_INVALID, show: toast.show + 1 });
+            toast.warn('Your game code is invalid. Please double check your game code and try again', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         }
     };
 
     const joinGameEnterCodeContinueHandler = async () => {
         if (gameCode.trim() === '')
-            setToast({ ...ERR_ENTER_GAME_CODE, show: toast.show + 1 });
+            toast.warn('Please enter a game code', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         else if (gameCode.trim().length > 6)
-            setToast({ ...ERR_GAME_CODE_TOO_LONG, show: toast.show + 1 });
+            toast.warn('Your game code cannot be longer than 6, please double check your game code and try again', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         else if (playerName.trim() === '')
-            setToast({ ...ERR_NO_PLAYER_NAME, show: toast.show + 1 });
+            toast.warn('Your player name is used to identify you in the game, please go back to the first screen and input a name', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         else await getGameWithCodeHandler();
     };
 
@@ -92,28 +128,64 @@ export default function JoinGameEnterCode() {
     useEffect(() => {
         const joinStatus = query.get('joinStatus');
         if (joinStatus === 'room-full') {
-            setToast((prevVal) => ({
-                ...ERR_ROOM_FULL,
-                show: prevVal.show + 1,
-            }));
+            toast.warn('This room is full, please check with the lobby owner', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         } else if (joinStatus === 'lobby-owner-exited') {
-            setToast((prevVal) => ({
-                ...ERR_LOBBY_OWNER_LEFT,
-                show: prevVal.show + 1,
-            }));
+            toast.warn('The lobby owner has left the room', {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         }
     }, [query]);
 
     return (
         <div>
             <Loading absolute loading={loading}>
-                <Toaster toast={toast} setToast={setToast} />
-                <h3>Enter code</h3>
-                <input onChange={setGameCodeHandler} value={gameCode} />
-                <button onClick={joinGameEnterCodeContinueHandler}>
-                    continue
-                </button>
+                <div className='input_create_game'>
+                    <div className='input_fields'>
+                        <div action='#' className='form'>
+                            <div className='form__grup'>
+                                <label htmlFor='gamecode' className='form__label'>
+                                    Enter room's game code
+                                </label>
+                                <input onChange={setGameCodeHandler} value={gameCode} className='form__input' id='gamecode' />
+                            </div>
+                            <div className='form__grup'>
+                                <div className='Continuo_btn_box'>
+                                    <button className='btnbox_btn--animation btn-Continuo' onClick={joinGameEnterCodeContinueHandler}>
+                                        Continue
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </Loading>
+            <ToastContainer
+                position='top-center'
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                draggable
+                pauseOnHover
+                pauseOnFocusLoss={false}
+            />
         </div>
     );
 }

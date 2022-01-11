@@ -9,7 +9,7 @@ const initialState = {
         isConnected: false,
     },
     gameOptions: {
-        playersAmount: 0,
+        playersAmount: 4,
     },
     lobby: {
         lobbyCode: '',

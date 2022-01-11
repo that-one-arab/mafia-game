@@ -16,13 +16,13 @@ function getRoleSvgAndDescription(playerRole) {
     return { component, description };
 }
 
-function useTimer({ timer, setTimer }) {
+function useTimer({ timer, setTimer, paused }) {
     useInterval(() => {
-        timer && setTimer((prevVal) => prevVal - 1);
+        timer && !paused && setTimer((prevVal) => prevVal - 1);
     }, 1000);
 }
 
-export default function Day({ state, dispatch, socket }) {
+export default function Day({ state, dispatch, socket, setPausedTimer }) {
     const lobbyCode = window.sessionStorage.getItem('global-lobbycode');
 
     const [movedToDayFired, setMovedToDayFired] = useState(false);
@@ -40,7 +40,32 @@ export default function Day({ state, dispatch, socket }) {
 
     const [lynchResult, setLynchResult] = useState(undefined);
 
-    useTimer({ timer, setTimer });
+    const [paused, setPaused] = useState(false);
+
+    useTimer({ timer, setTimer, paused });
+
+    /** Server would pause and unpause game if players who are still alive disconnected */
+    useEffect(() => {
+        socket.on('pause-game', () => {
+            socket.emit('current-time', lobbyCode, timer);
+            setPausedTimer(30);
+            setPaused(true);
+            dispatch({ type: 'PAUSE_GAME', payload: true });
+        });
+    }, [socket, dispatch, setPausedTimer, timer, lobbyCode]);
+
+    useEffect(() => {
+        socket.on('unpause-game', () => {
+            setPausedTimer(undefined);
+            setPaused(false);
+            dispatch({ type: 'PAUSE_GAME', payload: false });
+        });
+
+        if (state.gameProgress.currentTimer) {
+            setTimer(state.gameProgress.currentTimer);
+            dispatch({ type: 'CLEANUP_TIMER' });
+        }
+    }, [socket, dispatch, setPausedTimer, state.gameProgress.currentTimer]);
 
     useInterval(() => {
         if (timer && timer > 15) {
@@ -66,12 +91,9 @@ export default function Day({ state, dispatch, socket }) {
 
     useEffect(() => {
         if (!dayResFired && dayRes.length) {
-            console.log('!dayResFired && dayRes.length. Begining setTimeout after 4s...');
             setDayResFired(true);
             setTimeout(async () => {
-                console.log('setTimeout started...');
                 const dayResUniq = [...new Map(dayRes.map((v) => [v.id, v])).values()];
-                console.log('dayResUniq :', dayResUniq);
                 dayResUniq.forEach((result) => {
                     toast.error(
                         () => (
@@ -131,7 +153,6 @@ export default function Day({ state, dispatch, socket }) {
                 dispatch({ type: 'SET_PLAYER', payload: myPlayer });
                 if (room === 'day') {
                     if (res.props.gameProgress.dayResult.length) {
-                        console.log('day-result :', res.props.gameProgress.dayResult);
                         setDayRes(res.props.gameProgress.dayResult);
                     } else {
                         setDiscussStart(true);
@@ -276,6 +297,75 @@ export default function Day({ state, dispatch, socket }) {
 
     return (
         <div>
+            <section className='game day'>
+                <div className='game__info'>
+                    <p className='game__info-day'>Day {state.gameProgress.dayCount} </p>
+                    <p className='game__info-time'>Time {timer}s </p>
+                </div>
+
+                <div className='game__table'>
+                    <div className='game__table--container'>
+                        <table id='tab' className='table content-table-people'>
+                            <thead>
+                                <tr>
+                                    <th scope='col'>Name</th>
+
+                                    <th scope='col'></th>
+                                    <th scope='col'>{voteStart && !voteFinished && 'Votes'} </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {state.players.length
+                                    ? state.players.map((p, i) => (
+                                          <tr
+                                              key={p.playerID}
+                                              className={`${!p.playerAlive && 'dead-row'} ${
+                                                  p.playerID === state.myPlayer.playerID ? 'active-row' : ''
+                                              }`}
+                                          >
+                                              <td>{p.playerName}</td>
+                                              <td>
+                                                  {voteStart && !voteFinished && (
+                                                      <button
+                                                          disabled={voteDisabledHandler(p)}
+                                                          onClick={() =>
+                                                              socket.volatile.emit(
+                                                                  'vote-for',
+                                                                  lobbyCode,
+                                                                  state.myPlayer.playerID,
+                                                                  p.playerID
+                                                              )
+                                                          }
+                                                          className='btn-vote'
+                                                      >
+                                                          +
+                                                      </button>
+                                                  )}
+                                              </td>
+                                              <td>
+                                                  {voteStart && <p>{votes.find((vote) => vote.playerID === p.playerID).voters.length}</p>}
+                                              </td>
+                                          </tr>
+                                      ))
+                                    : null}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className='result'>
+                    <div className='result__container'>
+                        <div className='status'>
+                            <p className='role'>{description}</p>
+                            <br />
+                        </div>
+                        <div className='stat__box'>
+                            <div className='stat__box--icon'> {Svg} </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <ToastContainer
                 position='top-center'
                 autoClose={7000}
@@ -287,59 +377,6 @@ export default function Day({ state, dispatch, socket }) {
                 pauseOnHover
                 pauseOnFocusLoss={false}
             />
-            {lynchResult && (
-                <h1 style={{ color: lynchResult.playerTeam === 'MAFIA' ? 'red' : 'green' }}>
-                    {' '}
-                    {lynchResult.playerName} was a {lynchResult.playerRole}
-                </h1>
-            )}
-            <div className='header'>
-                <h3> Day {state.gameProgress.dayCount} </h3>
-                <h3> {timer} s </h3>
-            </div>
-
-            <div className='players-table'>
-                <table className='table'>
-                    <thead>
-                        <tr>
-                            <th scope='col'>#</th>
-                            <th scope='col'>Player Name</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {state.players.length
-                            ? state.players.map((p, i) => (
-                                  <tr key={p.playerID}>
-                                      <th scope='col'>#{i + 1}</th>
-                                      <th scope='col'>{p.playerName} </th>
-                                      <th>
-                                          {voteStart && !voteFinished && (
-                                              <button
-                                                  disabled={voteDisabledHandler(p)}
-                                                  onClick={() =>
-                                                      socket.volatile.emit('vote-for', lobbyCode, state.myPlayer.playerID, p.playerID)
-                                                  }
-                                              >
-                                                  Vote
-                                              </button>
-                                          )}
-                                      </th>
-                                      <th>{voteStart && <p>{votes.find((vote) => vote.playerID === p.playerID).voters.length}</p>}</th>
-                                  </tr>
-                              ))
-                            : null}
-                    </tbody>
-                </table>
-            </div>
-
-            <div className='row'>
-                <div className='col-6'>
-                    <p> {description} </p>
-                </div>
-                <div className='col-6'>
-                    <div className=''>{Svg}</div>
-                </div>
-            </div>
         </div>
     );
 }

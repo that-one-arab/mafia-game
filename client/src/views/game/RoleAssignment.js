@@ -72,8 +72,7 @@ export default function RoleAssignment({ state, dispatch, socket }) {
     }, [socket, dispatch]);
 
     return (
-        <div>
-            <h1>Role Assignemt</h1>
+        <div className='input_create_game'>
             <Slider
                 slideInterval={slideInterval}
                 playerRole={state.myPlayer.playerRole ? state.myPlayer.playerRole : undefined}

@@ -16,9 +16,25 @@ export const parseTownDisabled = (myPlayer, player) => {
     }
 };
 
+export const parseTownDisabledClass = (myPlayer, player) => {
+    if (!myPlayer.playerAlive) return 'btn-choose-people-disabled';
+
+    if (typeof myPlayer.actionCount === 'number' && !myPlayer.actionCount) {
+        return 'btn-choose-people-disabled';
+    }
+
+    if (myPlayer.playerRole === 'Brawler') {
+        if (myPlayer.playerID === player.playerID) {
+            return 'btn-choose-people';
+        }
+        return 'btn-choose-people-disabled';
+    } else {
+        if (myPlayer.playerID === player.playerID) return 'btn-choose-people-disabled';
+        return 'btn-choose-people';
+    }
+};
+
 export const parseMafiaSelectButton = (player) => {
-    if (player.godfatherActionOn) return 'btn-danger';
-    else if (player.escortActionOn) return 'btn-info';
-    else if (player.actionTotal) return 'btn-dark';
-    else return 'btn-primary';
+    if (player.escortActionOn) return 'btn-purple';
+    else if (player.actionTotal) return 'btn-black';
 };

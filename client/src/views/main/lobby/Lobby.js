@@ -105,13 +105,6 @@ function Lobby({ socket }) {
         <div>
             <Countdown start={startCountdown} timer={timer} setTimer={setTimer} />
             <div>
-                <button
-                    onClick={() => {
-                        socket.emit('log-vals');
-                    }}
-                >
-                    Log server vals
-                </button>
                 <h1>This is the lobby!</h1>
                 <p> Your code is </p>
                 <h2>{lobbyCode} </h2>

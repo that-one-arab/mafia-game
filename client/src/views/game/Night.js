@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useInterval } from '../../hooks';
 import { gameEls } from '../../assets/svg';
-import { parseMafiaSelectButton, parseTownDisabled } from './helpers';
+import { parseMafiaSelectButton, parseTownDisabled, parseTownDisabledClass } from './helpers';
 import ActionResult from './ActionResult';
+import GodfatherActionOn from '../../assets/img/6.png';
 
 function getRoleSvgAndDescription(playerRole) {
     const { component, description } = gameEls.find((el) => el.name === playerRole);
@@ -34,44 +35,48 @@ function TownUI({ state, actionStart, socket, lobbyCode }) {
 
     return (
         <div>
-            <p>Town UI</p>
-            <div className='players-table'>
-                <table className='table'>
-                    <thead>
-                        <tr>
-                            <th scope='col'>#</th>
-                            <th scope='col'>Player Name</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {players.length
-                            ? players.map((p, i) => (
-                                  <tr key={p.playerID}>
-                                      <th scope='col'>#{i + 1}</th>
-                                      <th scope='col'>{p.playerName} </th>
+            <div className='game__table'>
+                <div className='game__table--container'>
+                    <table id='tab' className='table content-table-people'>
+                        <thead>
+                            <tr>
+                                <th scope='col'>Name</th>
+                                <th scope='col'></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {players.length
+                                ? players.map((p, i) => (
+                                      <tr
+                                          key={p.playerID}
+                                          className={`${!p.playerAlive && 'dead-row'} ${
+                                              p.playerID === state.myPlayer.playerID ? 'active-row' : ''
+                                          }`}
+                                      >
+                                          <td>{p.playerName} </td>
 
-                                      {actionStart && state.myPlayer.playerRole !== 'Townie' && (
-                                          <>
-                                              <th>
+                                          {actionStart && state.myPlayer.playerRole !== 'Townie' && (
+                                              <td>
                                                   {' '}
                                                   <button
                                                       disabled={parseTownDisabled(state.myPlayer, p)}
-                                                      className={`btn ${p.actionOn ? 'btn-warning' : 'btn-primary'}`}
+                                                      className={`${parseTownDisabledClass(state.myPlayer, p)}  ${
+                                                          p.actionOn && 'btn-choose-mafia'
+                                                      }`}
                                                       onClick={() =>
                                                           socket.volatile.emit('action-on', lobbyCode, state.myPlayer.playerID, p.playerID)
                                                       }
                                                   >
                                                       Choose
                                                   </button>{' '}
-                                              </th>
-                                              <th>{/* <p>{votes.find((vote) => vote.playerID === p.playerID).voters.length}</p> */}</th>
-                                          </>
-                                      )}
-                                  </tr>
-                              ))
-                            : null}
-                    </tbody>
-                </table>
+                                              </td>
+                                          )}
+                                      </tr>
+                                  ))
+                                : null}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
@@ -87,7 +92,19 @@ function TownUI({ state, actionStart, socket, lobbyCode }) {
  */
 
 const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart, myPlayer, lobbyCode }) {
-    const handleMafiaDisabled = (player) => {
+    const handleMafiaDisabledClass = (player) => {
+        if (myPlayer.playerRole === 'Goon') return 'btn-choose-mafia-disabled';
+
+        if (!myPlayer.playerAlive) return 'btn-choose-mafia-disabled';
+
+        if (!player.playerAlive) return 'btn-choose-mafia-disabled';
+
+        if (player.playerTeam === 'MAFIA') return 'btn-choose-mafia-disabled';
+
+        return 'btn-choose-mafia';
+    };
+
+    const handleMafiaDisabledButton = (player) => {
         if (myPlayer.playerRole === 'Goon') return true;
 
         if (!myPlayer.playerAlive) return true;
@@ -100,52 +117,66 @@ const MafiaTable = React.memo(function MafiaTable({ socket, players, actionStart
     };
 
     return (
-        <div className='players-table'>
-            <table className='table'>
-                <thead>
-                    <tr>
-                        <th scope='col'>#</th>
-                        <th scope='col'>Player Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {players.length
-                        ? players.map((p, i) => {
-                              return (
-                                  <tr key={p.playerID} style={{ color: p.playerTeam === 'MAFIA' ? 'red' : '' }}>
-                                      <th scope='col'>#{i + 1}</th>
-                                      <th scope='col'>{p.playerRole ? p.playerName + ' (' + p.playerRole + ')' : p.playerName} </th>
-
-                                      {actionStart && (
-                                          <>
-                                              <th>
-                                                  {' '}
+        <div>
+            <div className='game__table'>
+                <div className='game__table--container'>
+                    <table id='tab' className='table content-table-mafia'>
+                        <thead>
+                            <tr>
+                                <th scope='col' style={{ width: '40%' }}>
+                                    Name
+                                </th>
+                                <th scope='col' style={{ width: '10%' }}></th>
+                                <th></th>
+                                <th scope='col' style={{ width: '15%' }}>
+                                    Total
+                                </th>
+                                <th scope='col' style={{ width: '20%' }}>
+                                    Confirmed
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {players.length
+                                ? players.map((p, i) => (
+                                      <tr
+                                          key={p.playerID}
+                                          className={`${!p.playerAlive && 'dead-row'} ${
+                                              p.playerID === myPlayer.playerID ? 'active-row' : ''
+                                          }`}
+                                      >
+                                          <td style={{ color: p.playerTeam === 'MAFIA' ? 'red' : 'black' }}>
+                                              {p.playerRole ? p.playerName + ' (' + p.playerRole + ')' : p.playerName}{' '}
+                                          </td>
+                                          <td>
+                                              {actionStart && (
                                                   <button
-                                                      className={`btn ${parseMafiaSelectButton(p)}`}
+                                                      className={`${handleMafiaDisabledClass(p)} ${parseMafiaSelectButton(p)}`}
                                                       onClick={() =>
                                                           socket.volatile.emit('action-on', lobbyCode, myPlayer.playerID, p.playerID)
                                                       }
-                                                      disabled={handleMafiaDisabled(p)}
+                                                      disabled={handleMafiaDisabledButton(p)}
                                                   >
                                                       Choose
-                                                  </button>{' '}
-                                              </th>
-                                              <th>
-                                                  <p style={{ color: 'red' }}>
-                                                      {p.actionTotal ? p.actionTotal + ' Selections' : 'No Selection'}
-                                                  </p>
-                                              </th>
-                                              <th>
-                                                  <p> {p.godfatherActionOn && 'Definite kill'} </p>
-                                              </th>
-                                          </>
-                                      )}
-                                  </tr>
-                              );
-                          })
-                        : null}
-                </tbody>
-            </table>
+                                                  </button>
+                                              )}
+                                          </td>
+                                          <td></td>
+                                          <td>{actionStart && <p style={{ color: 'red' }}>{p.actionTotal ? p.actionTotal : 0}</p>}</td>
+                                          <td>
+                                              {actionStart && p.godfatherActionOn && (
+                                                  <div className='img-box'>
+                                                      <img src={GodfatherActionOn} alt='icon' className='img-icon' />
+                                                  </div>
+                                              )}
+                                          </td>
+                                      </tr>
+                                  ))
+                                : null}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 });
@@ -196,12 +227,7 @@ function MafiaUI({ state, actionStart, socket, lobbyCode }) {
         });
     }, [socket, state.myPlayer.playerID]);
 
-    return (
-        <div>
-            <p>Mafia UI</p>
-            <MafiaTable socket={socket} players={players} lobbyCode={lobbyCode} myPlayer={state.myPlayer} actionStart={actionStart} />
-        </div>
-    );
+    return <MafiaTable socket={socket} players={players} lobbyCode={lobbyCode} myPlayer={state.myPlayer} actionStart={actionStart} />;
 }
 
 const actionCountHandler = (myPlayer) => {
@@ -231,7 +257,7 @@ export default function Night({ socket, state, dispatch }) {
                 await new Promise((r) =>
                     setTimeout(() => {
                         setActionStart(true);
-                        setTimer(35);
+                        setTimer(1333);
                         r();
                     }, 3000)
                 );
@@ -275,10 +301,10 @@ export default function Night({ socket, state, dispatch }) {
     const { component: Svg, description } = getRoleSvgAndDescription(state.myPlayer.playerRole);
 
     return (
-        <div>
-            <div className='header'>
-                <h3> Night </h3>
-                <h3> {timer} s </h3>
+        <section className='game night'>
+            <div className='game__info'>
+                <p className='game__info-day'>Night </p>
+                <p className='game__info-time'>Time {timer}s </p>
             </div>
 
             {actionResult && <ActionResult actionResult={actionResult} />}
@@ -289,15 +315,18 @@ export default function Night({ socket, state, dispatch }) {
                 <TownUI state={state} socket={socket} lobbyCode={lobbyCode} actionStart={actionStart} />
             )}
 
-            <div className='row'>
-                <div className='col-6'>
-                    <p>{description}</p>
-                    <p> {actionCountHandler(state.myPlayer)} </p>
-                </div>
-                <div className='col-6'>
-                    <div className=''>{Svg}</div>
+            <div className='result'>
+                <div className='result__container'>
+                    <div className='status'>
+                        <p className='role'>{description}</p>
+                        <p> {actionCountHandler(state.myPlayer)} </p>
+                        <br />
+                    </div>
+                    <div className='stat__box'>
+                        <div className='stat__box--icon'> {Svg} </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }

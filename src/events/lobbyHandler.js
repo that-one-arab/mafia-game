@@ -297,12 +297,4 @@ module.exports = (lobbyNps, socket) => {
             emitStartGame(lobbyNps, lobbyCode, false);
         }
     });
-
-    socket.on('log-vals', () => {
-        console.log('-----------------------------------------------------------');
-        for (let i = 0; i < lobby.length; i++) {
-            console.log('Lobby Room ', i, ' : ', lobby[i]);
-        }
-        console.log('-----------------------------------------------------------');
-    });
 };

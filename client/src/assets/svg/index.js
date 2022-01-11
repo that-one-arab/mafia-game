@@ -188,7 +188,7 @@ export const gameEls = [
     },
     {
         name: 'Sherrif',
-        component: <Svg svg='Sherrif' className={'player-role-pic'} />,
+        component: <Svg svg='Sherrif' />,
         description: 'May detect one person each night, knowing if they are mafia or not',
     },
     {
