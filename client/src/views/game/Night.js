@@ -257,7 +257,7 @@ export default function Night({ socket, state, dispatch }) {
                 await new Promise((r) =>
                     setTimeout(() => {
                         setActionStart(true);
-                        setTimer(1333);
+                        setTimer(20);
                         r();
                     }, 3000)
                 );
