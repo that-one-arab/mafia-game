@@ -434,9 +434,11 @@ module.exports = (gameNps, socket) => {
                         (player) => player.isOwner === false && player.playerDisconnected === false
                     )[0];
 
-                    const newOwnerIndex = game[gameRoomIndex].players.findIndex((player) => player.playerID === newOwner.playerID);
+                    if (newOwner) {
+                        const newOwnerIndex = game[gameRoomIndex].players.findIndex((player) => player.playerID === newOwner.playerID);
 
-                    game[gameRoomIndex].players[newOwnerIndex].isOwner = true;
+                        game[gameRoomIndex].players[newOwnerIndex].isOwner = true;
+                    }
                 }
 
                 const players = game[gameRoomIndex].players;
@@ -549,6 +551,8 @@ module.exports = (gameNps, socket) => {
             }
         } catch (error) {
             console.error(error);
+            console.info('removing all listeners...');
+            socket.removeAllListeners();
         }
     });
 

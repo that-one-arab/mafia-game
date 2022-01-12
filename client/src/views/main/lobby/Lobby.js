@@ -165,7 +165,10 @@ export default function LobbyWrapper() {
             transports: ['websocket'],
         });
         setSocket(newSocket);
-        return () => newSocket.close();
+        return () => {
+            newSocket.removeAllListeners();
+            newSocket.close();
+        };
     }, [setSocket]);
 
     if (socket) return <Lobby socket={socket} />;

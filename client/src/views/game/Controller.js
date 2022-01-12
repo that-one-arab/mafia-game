@@ -152,6 +152,7 @@ export default function ControllerWrapper() {
 
         return () => {
             mainDispatch({ type: 'SET_CONNECTED_TO_FALSE' });
+            newSocket.removeAllListeners();
             newSocket.close();
             console.log('disconnected socket...');
         };
