@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const mongoose = require('mongoose');
 
-const { Room } = require('./src/models');
+const { Lobby, Game } = require('./src/models');
 
 /** OPTIONS */
 // const lobbyRoom = true;
@@ -23,10 +23,11 @@ mongoose.connect(process.env.MONGODB_CONNECTION_STRING, {
 mongoose.connection.once('open', async () => {
     console.log('Database connection has been made');
 
-    await Room.deleteMany({});
+    await Lobby.deleteMany({});
+    await Game.deleteMany({});
     console.log('deleted current rooms');
 
-    const room = new Room({
+    const room = new Lobby({
         roomCode,
         playersAmount,
         owner: {

@@ -423,42 +423,43 @@ module.exports = (gameNps, socket) => {
                     id,
                     '. This could mean the socket did not join properly in the first place'
                 );
+            else {
+                disconnectPlayer(gameRoomIndex, playerIndex);
 
-            disconnectPlayer(gameRoomIndex, playerIndex);
+                /** Switch ownership of room */
+                if (game[gameRoomIndex].players[playerIndex].isOwner) {
+                    game[gameRoomIndex].players[playerIndex].isOwner = false;
 
-            /** Switch ownership of room */
-            if (game[gameRoomIndex].players[playerIndex].isOwner) {
-                game[gameRoomIndex].players[playerIndex].isOwner = false;
+                    const newOwner = game[gameRoomIndex].players.filter(
+                        (player) => player.isOwner === false && player.playerDisconnected === false
+                    )[0];
 
-                const newOwner = game[gameRoomIndex].players.filter(
-                    (player) => player.isOwner === false && player.playerDisconnected === false
-                )[0];
+                    const newOwnerIndex = game[gameRoomIndex].players.findIndex((player) => player.playerID === newOwner.playerID);
 
-                const newOwnerIndex = game[gameRoomIndex].players.findIndex((player) => player.playerID === newOwner.playerID);
+                    game[gameRoomIndex].players[newOwnerIndex].isOwner = true;
+                }
 
-                game[gameRoomIndex].players[newOwnerIndex].isOwner = true;
-            }
+                const players = game[gameRoomIndex].players;
 
-            const players = game[gameRoomIndex].players;
+                const { playerID } = game[gameRoomIndex].players[playerIndex];
 
-            const { playerID } = game[gameRoomIndex].players[playerIndex];
+                let townParsedPlayers = parseTownPlayers(players, playerID);
+                let mafiaParsedPlayers = parseMafiaPlayers(players, playerID);
 
-            let townParsedPlayers = parseTownPlayers(players, playerID);
-            let mafiaParsedPlayers = parseMafiaPlayers(players, playerID);
+                townParsedPlayers = sortPlayers(townParsedPlayers);
+                mafiaParsedPlayers = sortPlayers(mafiaParsedPlayers);
 
-            townParsedPlayers = sortPlayers(townParsedPlayers);
-            mafiaParsedPlayers = sortPlayers(mafiaParsedPlayers);
-
-            players.forEach((p) => {
-                gameNps.to(p.socketID).emit('game-players', {
-                    message: 'Player ID' + playerID + ' has disconnected',
-                    players: p.playerTeam === 'MAFIA' ? mafiaParsedPlayers : townParsedPlayers,
+                players.forEach((p) => {
+                    gameNps.to(p.socketID).emit('game-players', {
+                        message: 'Player ID' + playerID + ' has disconnected',
+                        players: p.playerTeam === 'MAFIA' ? mafiaParsedPlayers : townParsedPlayers,
+                    });
                 });
-            });
 
-            if (game[gameRoomIndex].players.filter((player) => player.playerDisconnected && player.playerAlive).length) {
-                game[gameRoomIndex].gameProgress.gamePaused = true;
-                gameNps.to(game[gameRoomIndex].gameCode).emit('pause-game');
+                if (game[gameRoomIndex].players.filter((player) => player.playerDisconnected && player.playerAlive).length) {
+                    game[gameRoomIndex].gameProgress.gamePaused = true;
+                    gameNps.to(game[gameRoomIndex].gameCode).emit('pause-game');
+                }
             }
         } catch (error) {
             console.error(error);
@@ -515,35 +516,39 @@ module.exports = (gameNps, socket) => {
     });
 
     socket.on('get-game-props', (gameCode, playerID, responseCb) => {
-        const gameRoomIndex = indexOfGameRoom(gameCode);
+        try {
+            const gameRoomIndex = indexOfGameRoom(gameCode);
 
-        if (gameRoomIndex !== -1) {
-            const { players } = game[gameRoomIndex];
+            if (gameRoomIndex !== -1) {
+                const { players } = game[gameRoomIndex];
 
-            const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
+                const { playerIndex } = findPlayerIDIndexInRooms(gameRoomIndex, playerID);
 
-            const player = players[playerIndex];
+                const player = players[playerIndex];
 
-            let townParsedPlayers = parseTownPlayers(players, playerID);
-            let mafiaParsedPlayers = parseMafiaPlayers(players, playerID);
+                let townParsedPlayers = parseTownPlayers(players, playerID);
+                let mafiaParsedPlayers = parseMafiaPlayers(players, playerID);
 
-            townParsedPlayers = sortPlayers(townParsedPlayers);
-            mafiaParsedPlayers = sortPlayers(mafiaParsedPlayers);
+                townParsedPlayers = sortPlayers(townParsedPlayers);
+                mafiaParsedPlayers = sortPlayers(mafiaParsedPlayers);
 
-            responseCb({
-                status: '200',
-                props: {
-                    gameProgress: game[gameRoomIndex].gameProgress,
-                    players: player.playerTeam === 'MAFIA' ? mafiaParsedPlayers : townParsedPlayers,
-                },
-            });
+                responseCb({
+                    status: '200',
+                    props: {
+                        gameProgress: game[gameRoomIndex].gameProgress,
+                        players: player.playerTeam === 'MAFIA' ? mafiaParsedPlayers : townParsedPlayers,
+                    },
+                });
 
-            const winner = verifyWinningCondition(players);
-            console.log('winner2 :', winner);
-            if (winner) {
-                gameNps.to(gameCode).emit('game-ended', winner, players);
-                game.splice(gameRoomIndex, 1);
+                const winner = verifyWinningCondition(players);
+                console.log('winner2 :', winner);
+                if (winner) {
+                    gameNps.to(gameCode).emit('game-ended', winner, players);
+                    game.splice(gameRoomIndex, 1);
+                }
             }
+        } catch (error) {
+            console.error(error);
         }
     });
 
