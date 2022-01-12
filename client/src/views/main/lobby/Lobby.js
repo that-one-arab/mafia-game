@@ -32,26 +32,19 @@ function Lobby({ socket }) {
     const { lobbyCode, players } = useSelector((state) => state.lobby);
     const { gameOptions } = useSelector((state) => state);
     const { playersAmount } = gameOptions;
-    // console.log({ lobbyCode, players, myPlayer, playersAmount });
 
     const [timer, setTimer] = useState(10);
     const [startCountdown, setStartCountdown] = useState(false);
 
     useEffect(() => {
         if (myPlayer.isOwner) {
-            // console.log('firing create-room');
-            socket.emit('create-room', lobbyCode, (res) => {
-                if (res.status !== 201) console.warn({ res });
-            });
+            socket.emit('create-room', lobbyCode, (res) => {});
         }
     }, [socket, myPlayer, lobbyCode]);
 
     useEffect(() => {
         if (!myPlayer.isOwner) {
             socket.emit('join-room', lobbyCode, myPlayer.playerName, (res) => {
-                // console.log('firing join-room');
-                if (res.status !== 200) console.warn({ res });
-
                 dispatch({ type: 'SET_PLAYER_ID', payload: res.playerID });
                 dispatch({
                     type: 'SET_PLAYERS_AMOUNT',
@@ -63,7 +56,6 @@ function Lobby({ socket }) {
 
     useEffect(() => {
         socket.on('lobby-players', (res) => {
-            // console.log('listened to lobby-players, res: ', res);
             dispatch({ type: 'SET_PLAYERS', payload: res.payload.players });
         });
 
@@ -74,7 +66,6 @@ function Lobby({ socket }) {
 
     useEffect(() => {
         socket.on('start-countdown', () => {
-            // console.log('starting countdown...');
             setStartCountdown(true);
 
             window.sessionStorage.setItem('global-myplayer', JSON.stringify(myPlayer));
@@ -83,7 +74,6 @@ function Lobby({ socket }) {
         });
 
         socket.on('stop-countdown', () => {
-            // console.log('stopped countdown!');
             setTimer(10);
             setStartCountdown(false);
         });
@@ -122,7 +112,7 @@ function Lobby({ socket }) {
                     <br />
                     {startCountdown && (
                         <>
-                            <p className='game__share--paragraph'>Game will started in</p>
+                            <p className='game__share--paragraph'>Game will start in</p>
                             <Countdown start={startCountdown} timer={timer} setTimer={setTimer} />
                         </>
                     )}

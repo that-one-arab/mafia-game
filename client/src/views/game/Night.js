@@ -279,7 +279,6 @@ export default function Night({ socket, state, dispatch }) {
 
     useEffect(() => {
         socket.on('action-result', async (result) => {
-            console.log('listened to action-result :', result);
             setActionResult(result);
 
             if (state.myPlayer.isOwner) {

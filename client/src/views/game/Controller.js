@@ -50,8 +50,6 @@ function Controller({ socket, state, dispatch }) {
     /** Fired once. attempts to join a player to a room, or if room doesnt exist; create and join a room */
     useEffect(() => {
         socket.emit('join-game', lobbyCode, myPlayer.playerID, myPlayer.playerName, (res) => {
-            if (res.status !== 200) console.warn(res);
-
             window.sessionStorage.setItem(
                 'local-gameProgress',
                 JSON.stringify({
@@ -69,7 +67,6 @@ function Controller({ socket, state, dispatch }) {
     useEffect(() => {
         if (state.gameProgress.isRoleAssigned) {
             socket.emit('get-game-props', lobbyCode, state.myPlayer.playerID, (res) => {
-                console.log('get-game-props :', res);
                 dispatch({
                     type: 'SET_GAME_PROPS',
                     payload: {
@@ -154,7 +151,6 @@ export default function ControllerWrapper() {
             mainDispatch({ type: 'SET_CONNECTED_TO_FALSE' });
             newSocket.removeAllListeners();
             newSocket.close();
-            console.log('disconnected socket...');
         };
     }, [setSocket, mainDispatch]);
 

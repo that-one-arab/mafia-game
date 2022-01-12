@@ -39,7 +39,6 @@ export default function CreateGame() {
 
         if (res.status === 201) {
             const data = await res.json();
-            console.log({ data });
             dispatch({ type: 'SET_LOBBY_CODE', payload: data.lobbyCode });
             dispatch({ type: 'SET_PLAYER_ID', payload: data.playerID });
             dispatch({ type: 'SET_ROOM_OWNER_TRUE' });

@@ -69,14 +69,12 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
 
     useInterval(() => {
         if (timer && timer > 15) {
-            console.log('emitting sync-time...');
             socket.emit('sync-time', lobbyCode, state.myPlayer.playerID, timer);
         }
     }, 15000);
 
     useEffect(() => {
         socket.on('synced-time', (newTimer) => {
-            console.log('recieved synced-time, new timer: ', newTimer);
             setTimer(newTimer);
         });
     }, [socket]);
@@ -124,7 +122,6 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
 
                 await new Promise((r) => {
                     setTimeout(() => {
-                        console.log('setting discussStart to true');
                         setDiscussStart(true);
                         r();
                     }, 4000);
@@ -135,9 +132,7 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
 
     useEffect(() => {
         socket.on('all-players-in-room', (room) => {
-            console.log('all-players-in-room');
             socket.emit('get-game-props', lobbyCode, state.myPlayer.playerID, async (res) => {
-                console.log('get-game-props :', res);
                 dispatch({
                     type: 'SET_GAME_PROPS',
                     payload: {
@@ -206,14 +201,11 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
 
     useEffect(() => {
         socket.on('vote-result', async (player) => {
-            console.log('vote-result :', player);
             if (player) {
-                console.log('setting lynchResult to player', player);
                 setLynchResult(player);
 
                 await new Promise((r) => {
                     setTimeout(() => {
-                        console.log('setting voteFinished to true');
                         setVoteFinished(true);
                         r();
                     }, 4000);
@@ -226,7 +218,6 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
 
     useEffect(() => {
         if (lynchResult) {
-            console.log('lynchResult is present, rendering a toast...');
             toast.error(
                 () => (
                     <div>
@@ -279,7 +270,6 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
                 });
 
                 setTimeout(() => {
-                    console.log('dispatching GAME_ENDED with value :', gameEnded);
                     dispatch({ type: 'GAME_ENDED', payload: gameEnded });
                 }, 3000);
             }, 2000);
