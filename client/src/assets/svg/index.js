@@ -184,7 +184,7 @@ export const gameEls = [
     {
         name: 'Doctor',
         component: <Svg svg='Doctor' />,
-        description: 'May protect one person from being killed each night. May not protect himself',
+        description: 'May protect one person from being killed each night. May not protect themself',
     },
     {
         name: 'Sherrif',
@@ -242,7 +242,7 @@ export const els = [
     {
         name: 'Doctor',
         component: <Svg className={'svg slide-img'} svg='Doctor' />,
-        description: 'May protect one person from being killed each night. May not protect himself',
+        description: 'May protect one person from being killed each night. May not protect themself',
     },
     {
         name: 'Sherrif',

@@ -103,39 +103,54 @@ function Lobby({ socket }) {
 
     return (
         <div>
-            <Countdown start={startCountdown} timer={timer} setTimer={setTimer} />
-            <div>
-                <h1>This is the lobby!</h1>
-                <p> Your code is </p>
-                <h2>{lobbyCode} </h2>
-                <p>Share this code with people who wanna join!</p>
-            </div>
-            <div>
-                <p>Joined players table</p>
-            </div>
-            <table className='table'>
-                <thead>
-                    <tr>
-                        <th scope='col'>#</th>
-                        <th scope='col'>Player Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {players.length
-                        ? players.map((p, i) => (
-                              <tr
-                                  key={p.playerID}
-                                  style={{
-                                      backgroundColor: p.isOwner ? 'grey' : 'white',
-                                  }}
-                              >
-                                  <th scope='col'>#{i + 1}</th>
-                                  <th scope='col'>{p.playerName} </th>
-                              </tr>
-                          ))
-                        : null}
-                </tbody>
-            </table>
+            <section className='game lobby-1'>
+                <div className='game__share'>
+                    <p className='game__share--paragraph-1 padding_top-bottom'>Your code is</p>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <span className='game__share--paragraph game-code '>{lobbyCode}</span>
+                        <button
+                            style={{ marginLeft: '10px' }}
+                            type='button'
+                            className='btn btn-outline-secondary'
+                            onClick={() => navigator.clipboard.writeText(lobbyCode)}
+                        >
+                            <i className='far fa-clipboard'></i>
+                        </button>
+                    </div>
+                    <br />
+                    <p>Give this to other players so they can join your lobby</p>
+                    <br />
+                    {startCountdown && (
+                        <>
+                            <p className='game__share--paragraph'>Game will started in</p>
+                            <Countdown start={startCountdown} timer={timer} setTimer={setTimer} />
+                        </>
+                    )}
+                </div>
+
+                <div className='game__table'>
+                    <div className='game__table--container'>
+                        <table id='tab' className='table content-table-people'>
+                            <thead>
+                                <tr>
+                                    <th scope='col'> </th>
+                                    <th scope='col'>Player Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {players.length
+                                    ? players.map((p, i) => (
+                                          <tr className={`${myPlayer.playerID === p.playerID ? 'active-row' : ''}`} key={p.playerID}>
+                                              <td>#{i + 1}</td>
+                                              <td>{p.playerName} </td>
+                                          </tr>
+                                      ))
+                                    : null}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </div>
     );
 }

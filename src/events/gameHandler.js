@@ -617,6 +617,8 @@ module.exports = (gameNps, socket) => {
                 gameNps.to(gameCode).emit('vote-result', 0);
             }
 
+            initiateVotes(gameRoomIndex, game[gameRoomIndex].players);
+
             const winner = verifyWinningCondition(game[gameRoomIndex].players);
             console.log('winner1 :', winner);
             if (winner) {

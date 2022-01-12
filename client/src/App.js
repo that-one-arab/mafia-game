@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { routes } from './routes';
 
 import 'react-toastify/dist/ReactToastify.css';
+import 'react-slideshow-image/dist/styles.css';
 
 function App() {
     return (

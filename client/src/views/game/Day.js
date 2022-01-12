@@ -295,9 +295,18 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
         return false;
     };
 
+    const voteDisabledHandlerClass = (player) => {
+        if (!state.myPlayer.playerAlive) return 'btn-vote-disabled';
+
+        if (!player.playerAlive) return 'btn-vote-disabled';
+
+        if (state.myPlayer.playerID === player.playerID) return 'btn-vote-disabled';
+        return 'btn-vote';
+    };
+
     return (
         <div>
-            <section className='game day'>
+            <section className='game day game-flex-container'>
                 <div className='game__info'>
                     <p className='game__info-day'>Day {state.gameProgress.dayCount} </p>
                     <p className='game__info-time'>Time {timer}s </p>
@@ -322,6 +331,7 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
                                               className={`${!p.playerAlive && 'dead-row'} ${
                                                   p.playerID === state.myPlayer.playerID ? 'active-row' : ''
                                               }`}
+                                              style={{ marginBottom: '10px' }}
                                           >
                                               <td>{p.playerName}</td>
                                               <td>
@@ -336,7 +346,7 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
                                                                   p.playerID
                                                               )
                                                           }
-                                                          className='btn-vote'
+                                                          className={`${voteDisabledHandlerClass(p)}`}
                                                       >
                                                           +
                                                       </button>
@@ -353,7 +363,7 @@ export default function Day({ state, dispatch, socket, setPausedTimer }) {
                     </div>
                 </div>
 
-                <div className='result'>
+                <div className='result' style={{ marginTop: 'auto' }}>
                     <div className='result__container'>
                         <div className='status'>
                             <p className='role'>{description}</p>
