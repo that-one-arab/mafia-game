@@ -380,7 +380,7 @@ module.exports = (gameNps, socket) => {
             /** Get index again in case the "gameRoomIndex" var returned null | undefined (happens if game room does not exist) */
             const players = game[indexOfGameRoom(gameCode)].players;
 
-            if (game[gameRoomIndex].gameProgress.areRolesAssigned) {
+            if (game[gameRoomIndex].gameProgress && game[gameRoomIndex].gameProgress.areRolesAssigned) {
                 responseCb({
                     status: 200,
                     message: 'Roles are already assigned. Phase is -' + game[gameRoomIndex].gameProgress.gamePhase,
@@ -1246,6 +1246,11 @@ module.exports = (gameNps, socket) => {
                             if (isTargetProtected(players, player.playerID)) {
                                 modifyActionResult(player.playerID, {
                                     code: DOCTOR_PROTECTED_ME,
+                                    payload: '',
+                                });
+                            } else {
+                                modifyActionResult(player.playerID, {
+                                    code: KILLED,
                                     payload: '',
                                 });
                             }
