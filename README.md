@@ -31,9 +31,7 @@ The game accomplishes that in a couple ways
 -   Creating and joining an online room is very easy and quick, allowing players to initialize a game without too much steps
 -   The game has no built in chat, forcing the players to resort to other ways to communicate with each other (locally or a 3rd party VC)
 
-## Installation
-
-Dillinger requires [Node.js](https://nodejs.org/) v10+ to run.
+## .
 
 From the root directory, Install the dependencies and devDependencies.
 
